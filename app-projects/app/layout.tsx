@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import Header from "@/components/Header";
+import CommandPalette from "@/components/CommandPalette";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -15,8 +16,21 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Developer Codex",
+  title: {
+    default: "Developer Codex",
+    template: "%s",
+  },
   description: "A monochrome logbook, archive, and playbook for builders.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black",
+    title: "Codex",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#000000",
 };
 
 export default function RootLayout({
@@ -31,6 +45,7 @@ export default function RootLayout({
       >
         <Header />
         {children}
+        <CommandPalette />
       </body>
     </html>
   );

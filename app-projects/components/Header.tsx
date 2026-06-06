@@ -1,4 +1,5 @@
 import Link from "next/link";
+import SearchTrigger from "@/components/SearchTrigger";
 
 /**
  * Global, minimalist navigation header.
@@ -20,18 +21,21 @@ export default function Header() {
         <Link href="/" className="font-extrabold tracking-tight text-white">
           Developer Codex
         </Link>
-        <ul className="flex gap-8 font-normal">
-          {NAV_LINKS.map(({ href, label }) => (
-            <li key={href}>
-              <Link
-                href={href}
-                className="text-gray-400 transition-colors hover:text-white"
-              >
-                {label}
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <div className="flex items-center gap-6 md:gap-8">
+          <ul className="flex gap-6 font-normal md:gap-8">
+            {NAV_LINKS.map(({ href, label }) => (
+              <li key={href}>
+                <Link
+                  href={href}
+                  className="text-gray-400 transition-opacity duration-150 hover:opacity-70"
+                >
+                  {label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <SearchTrigger />
+        </div>
       </nav>
     </header>
   );

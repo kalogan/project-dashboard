@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getAllLogbookEntries } from "@/lib/mdx";
+import { getAllLogbookEntries, tagToSlug } from "@/lib/mdx";
 
 export const metadata = {
   title: "Logbook — Developer Codex",
@@ -25,7 +25,7 @@ export default function LogbookPage() {
       <div className="mt-10 border-t border-gray-800">
         {/* Header row */}
         <div
-          className={`${COLUMNS} border-b border-gray-800 px-2 py-3 text-xs font-semibold uppercase tracking-widest text-gray-500`}
+          className={`${COLUMNS} border-b border-gray-800 px-2 py-3 text-xs font-semibold uppercase tracking-widest text-gray-400`}
         >
           <span>Date</span>
           <span>Location</span>
@@ -35,28 +35,40 @@ export default function LogbookPage() {
 
         {/* Entry rows — each row is clickable and routes to the detail page. */}
         {entries.length === 0 ? (
-          <p className="px-2 py-6 font-normal text-gray-500">
+          <p className="px-2 py-6 font-normal text-gray-400">
             No entries yet.
           </p>
         ) : (
           entries.map((entry) => (
-            <Link
+            // The row link uses `display: contents` so its cells flow into the
+            // shared grid, while the Tags cell sits outside it as separate tag
+            // links — avoiding invalid nested anchors.
+            <div
               key={entry.slug}
-              href={`/logbook/${entry.slug}`}
               className={`${COLUMNS} items-baseline border-b border-gray-800 px-2 py-4 transition-colors hover:bg-gray-900`}
             >
-              <time
-                dateTime={entry.date}
-                className="font-mono text-sm tabular-nums text-gray-400"
-              >
-                {entry.date}
-              </time>
-              <span className="text-sm text-gray-400">{entry.location}</span>
-              <span className="font-semibold text-white">{entry.title}</span>
-              <span className="hidden font-mono text-xs text-gray-500 md:block">
-                {entry.tags.join(", ")}
+              <Link href={`/logbook/${entry.slug}`} className="contents">
+                <time
+                  dateTime={entry.date}
+                  className="font-mono text-sm tabular-nums text-gray-400"
+                >
+                  {entry.date}
+                </time>
+                <span className="text-sm text-gray-400">{entry.location}</span>
+                <span className="font-semibold text-white">{entry.title}</span>
+              </Link>
+              <span className="hidden flex-wrap gap-x-2 font-mono text-xs text-gray-400 md:flex">
+                {entry.tags.map((tag) => (
+                  <Link
+                    key={tag}
+                    href={`/tags/${tagToSlug(tag)}`}
+                    className="transition-opacity duration-150 hover:text-white"
+                  >
+                    {tag}
+                  </Link>
+                ))}
               </span>
-            </Link>
+            </div>
           ))
         )}
       </div>

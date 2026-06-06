@@ -1,0 +1,48 @@
+---
+title: "Astonia Legacy"
+year: 2026
+tier: "archive"
+category: "Systems Architecture"
+visibility: "public"
+hero_media: "/archive/astonia-legacy.webp"
+tech_stack: ["C", "SDL", "TCP/IP"]
+time_to_mvp: "years"
+---
+
+Deep legacy. A long-running effort to understand and modernize the server
+architecture of a classic isometric MMORPG — the kind of code archaeology that
+only makes sense to surface once you flip on the full archive.
+
+## Why It Lives Here
+
+This is not portfolio-grade. It is honest history: the place where I learned how
+authoritative game servers actually work, warts and all.
+
+## Systems Architecture
+
+The server was a single-threaded authoritative tick loop reading from raw TCP
+sockets. Every client action was a request; the server was the only source of
+truth for the world state.
+
+```c
+/* The heartbeat: one deterministic tick, no exceptions. */
+while (server_running) {
+    poll_sockets(clients, MAX_CLIENTS);
+    apply_player_actions();
+    step_world_simulation();
+    broadcast_deltas();
+    sleep_until_next_tick();
+}
+```
+
+<PromptVault title="The Tick Loop">
+The single hardest lesson: determinism is a feature. Once the simulation step
+was made fully deterministic, desync bugs that had haunted the project for
+months became reproducible — and therefore fixable.
+</PromptVault>
+
+## The Lesson
+
+Old code is a teacher. The patterns here — authoritative state, delta
+broadcasting, deterministic ticks — are the same ones I reach for today, just
+with better tools.
