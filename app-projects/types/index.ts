@@ -109,6 +109,20 @@ export interface ChatTurn {
   text: string;
 }
 
+/** How a triage file is routed for processing. */
+export type InboxKind = "image" | "video" | "doc" | "other";
+
+/** A raw file sitting in the local `_inbox` triage queue. */
+export interface InboxItem {
+  /** Stored filename inside `_inbox` (unique, sanitized). */
+  name: string;
+  mime: string;
+  kind: InboxKind;
+  /** ISO date (YYYY-MM-DD) from EXIF DateTimeOriginal, when available. */
+  capturedAt: string | null;
+  size: number;
+}
+
 /**
  * A normalized, cross-pillar entry used by the global tag taxonomy and the
  * activity telemetry — a common shape regardless of the source schema.

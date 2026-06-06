@@ -1,7 +1,17 @@
 import withPWAInit from "@ducanh2912/next-pwa";
 
 /** @type {import('next').NextConfig} */
-const nextConfig = {};
+const nextConfig = {
+  // These ship native binaries / use dynamic requires; keep them out of the
+  // webpack bundle so server actions can load them at runtime.
+  experimental: {
+    serverComponentsExternalPackages: [
+      "fluent-ffmpeg",
+      "ffmpeg-static",
+      "sharp",
+    ],
+  },
+};
 
 const withPWA = withPWAInit({
   dest: "public",
