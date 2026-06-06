@@ -6,6 +6,12 @@
 export type Visibility = "public" | "private" | "draft";
 
 /**
+ * How an entry's body is rendered. `doc` (default) renders MDX prose; `board`
+ * renders the interactive Visual Logistics Board from the markdown body.
+ */
+export type EntryLayout = "doc" | "board";
+
+/**
  * Frontmatter contract for a single Logbook entry.
  *
  * Every `.mdx` file in `content/logbook` MUST declare these fields in its
@@ -18,6 +24,7 @@ export interface LogbookEntry {
   tags: string[];
   summary: string;
   visibility: Visibility;
+  layout: EntryLayout;
 }
 
 /**
@@ -63,6 +70,7 @@ export interface ArchiveEntry {
   visibility: Visibility;
   hero_media: string;
   tech_stack: string[];
+  layout: EntryLayout;
   /**
    * Optional headline metric surfaced on the detail page header
    * (e.g. "6 weeks"). Not part of the required showcase contract.
@@ -107,6 +115,7 @@ export interface PlaybookEntry {
   /** Optional cross-pillar tags for the global taxonomy. */
   tags: string[];
   visibility: Visibility;
+  layout: EntryLayout;
 }
 
 /** The three content pillars. */

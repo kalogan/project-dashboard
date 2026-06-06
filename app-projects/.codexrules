@@ -1,0 +1,47 @@
+# Codex Architecture Rules
+
+The master rulebook for the Developer Codex. These tenets govern both the
+React/Next.js source and the MDX authored in the CMS. The Architecture Sentinel
+(`app/actions/vetCode.ts`) and your IDE (Cursor/Copilot) both read this file.
+
+## Aesthetics & UI
+
+1. **No border-radius.** Every surface is sharp-cornered (`rounded-none`); never
+   use `rounded`, `rounded-md`, `rounded-lg`, etc.
+2. **Monochrome by default.** Build hierarchy from black/white/gray, borders,
+   spacing, and font weight — not color.
+3. **Structural accents use visceral-maroon (`#4e2329`).** Active states and
+   structural containers in the visceral theme use maroon for borders/identity,
+   never for body text.
+4. **Interactive accents use luminescent-teal (`#4dbbc0`).** Hovers, focus
+   rings, tags, and data peaks glow teal in the visceral theme.
+5. **Use theme tokens, not hardcoded colors.** Components use
+   `bg-theme-base`, `text-theme-text`, `text-theme-muted`, `border-theme-border`
+   — never `dark:bg-black` or raw hex in component classes.
+
+## Accessibility
+
+6. **WCAG AA contrast for all text.** Body text must clear 4.5:1 against its
+   background. Never render maroon (`#4e2329`) as text on a dark surface.
+7. **44×44px minimum tap targets** for interactive controls (inline text links
+   are exempt).
+8. **Label every control.** Inputs, buttons, and switches carry an accessible
+   name (`aria-label`, `<label>`, or visible text).
+
+## Performance & Offline-First
+
+9. **Reading routes stay lean.** First Load JS for `[slug]` routes must remain
+   under 85kb so the offline reading experience is instant on mobile.
+10. **Prefer Server Components.** Do not reach for client-side `useEffect` to
+    fetch data a Server Component can read at build/request time.
+11. **Heavy/native deps are server-only.** `sharp`, `ffmpeg`, and EXIF parsing
+    never enter the client bundle.
+
+## Schema & Privacy
+
+12. **Every entry declares `visibility`** (`public` | `private` | `draft`).
+    Missing means private (default-deny).
+13. **No empty bespoke components.** A `<SpecSheet>` must have `specs`; a
+    `<Changelog>` must have `version` and `date`.
+14. **Private data never ships.** Private/draft content and the Logbook are
+    excluded from the production build, search index, and backlink graph.

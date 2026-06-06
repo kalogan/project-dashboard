@@ -57,9 +57,14 @@ export async function saveMdxFile(formData: FormData) {
 
   const today = new Date().toISOString().slice(0, 10);
 
+  // Auto-detect Logistics Board syntax (### lanes + - [ ] tasks) so AI- or
+  // hand-authored boards render as a board without setting frontmatter by hand.
+  const isBoard = /^###\s+/m.test(body) && /^- \[[ xX]\]\s+/m.test(body);
+
   // Compose pillar-appropriate frontmatter so the new entry parses cleanly
   // against the existing typed readers.
   const frontmatter: Record<string, unknown> = { title, tags };
+  if (isBoard) frontmatter.layout = "board";
   if (pillar === "logbook") {
     // The Logbook is the private timeline — never public.
     frontmatter.visibility = "private";

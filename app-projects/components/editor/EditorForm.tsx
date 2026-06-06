@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { saveMdxFile } from "@/app/actions/saveMdx";
 import { uploadImage } from "@/app/actions/uploadMedia";
+import { vetCode } from "@/app/actions/vetCode";
 import Interrogator from "@/components/editor/Interrogator";
 import Triage from "@/components/editor/Triage";
 import type { InboxItem } from "@/types";
@@ -50,7 +51,24 @@ export default function EditorForm({
 }) {
   const [body, setBody] = useState("");
   const [tab, setTab] = useState<"compose" | "inbox">("compose");
+  const [vetResult, setVetResult] = useState<string | null>(null);
+  const [vetting, setVetting] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Advisory Sentinel vet — never blocks Save.
+  async function vet() {
+    setVetting(true);
+    setVetResult(null);
+    try {
+      setVetResult(await vetCode(body));
+    } catch (err) {
+      setVetResult(err instanceof Error ? err.message : "Vetting failed.");
+    } finally {
+      setVetting(false);
+    }
+  }
+
+  const vetPassed = vetResult?.includes("ZERO VIOLATIONS") ?? false;
 
   /** Splice `text` into the body at the current selection, then refocus. */
   function insertAtCursor(text: string) {
@@ -213,12 +231,47 @@ export default function EditorForm({
         </div>
       </div>
 
-        <button
-          type="submit"
-          className="rounded-none border border-white bg-white px-4 py-2 font-mono text-xs font-semibold uppercase tracking-widest text-black transition-opacity duration-150 hover:opacity-80"
-        >
-          Save entry
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="submit"
+            className="rounded-none border border-white bg-white px-4 py-2 font-mono text-xs font-semibold uppercase tracking-widest text-black transition-opacity duration-150 hover:opacity-80"
+          >
+            Save entry
+          </button>
+          <button
+            type="button"
+            onClick={vet}
+            disabled={vetting}
+            className="rounded-none border border-theme-border px-4 py-2 font-mono text-xs font-semibold uppercase tracking-widest text-theme-muted transition-colors duration-200 hover:border-theme-accent hover:text-theme-text disabled:opacity-40"
+          >
+            {vetting ? "[ Vetting… ]" : "[ Vet Content ]"}
+          </button>
+        </div>
+
+        {/* Sentinel console — advisory; Save is never blocked by it. */}
+        <details className="border border-theme-border" open={vetResult !== null}>
+          <summary className="cursor-pointer border-b border-theme-border px-4 py-2 font-mono text-xs uppercase tracking-widest text-theme-muted">
+            Architecture Sentinel
+          </summary>
+          <div className="p-4">
+            {vetResult === null ? (
+              <p className="font-mono text-xs uppercase tracking-widest text-theme-muted">
+                Idle — vet the draft to audit it against .codexrules.
+              </p>
+            ) : vetPassed ? (
+              // Teal passes WCAG on black (~9:1); safe as text.
+              <pre className="whitespace-pre-wrap font-mono text-sm text-[#4dbbc0]">
+                {vetResult}
+              </pre>
+            ) : (
+              // Violations: maroon as the structural marker (border), readable
+              // light text for the log itself (maroon-as-text fails contrast).
+              <pre className="whitespace-pre-wrap border-l-2 border-[#4e2329] pl-3 font-mono text-sm text-theme-text">
+                {vetResult}
+              </pre>
+            )}
+          </div>
+        </details>
           </form>
         </div>
       )}
