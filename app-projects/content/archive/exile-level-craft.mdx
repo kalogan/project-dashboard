@@ -1,0 +1,45 @@
+---
+title: "Exile-Level Craft"
+year: 2026
+tier: "portfolio"
+category: "Desktop Tooling"
+visibility: "public"
+hero_media: "/archive/exile-level-craft.webp"
+tech_stack: ["Electron", "TypeScript"]
+time_to_mvp: "6 weeks"
+---
+
+A desktop companion built to the standard I hold my best work to — every
+interaction deliberate, every frame accounted for. The goal was a native-feeling
+Electron app that never betrays its web origins.
+
+## The Premise
+
+Most Electron apps feel like websites in a frame. This one had to feel like a
+tool. That meant obsessing over window chrome, keyboard-first navigation, and a
+cold-start budget measured in milliseconds.
+
+## Architecture
+
+The renderer is a thin, [TypeScript](https://www.typescriptlang.org/)-first view
+layer; all privileged work happens across a strictly typed IPC boundary.
+
+```ts
+// Strongly typed IPC channel — no stringly-typed surprises.
+type Channel = "vault:read" | "vault:write";
+
+function invoke<T>(channel: Channel, payload: unknown): Promise<T> {
+  return ipcRenderer.invoke(channel, payload);
+}
+```
+
+<PromptVault title="Cold-Start Budget">
+The cold-start target was 400ms to interactive. We got there by deferring the
+heavy editor bundle behind a dynamic import and pre-warming the main-process
+cache on `app.whenReady()`.
+</PromptVault>
+
+## Outcome
+
+Shipped, signed, and notarized. The craft compounds: the IPC contract that
+started as a constraint became the thing that kept the codebase honest.

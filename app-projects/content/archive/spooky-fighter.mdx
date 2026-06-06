@@ -1,0 +1,58 @@
+---
+title: "Spooky Fighter"
+year: 2026
+tier: "demo"
+category: "Game Systems"
+visibility: "public"
+hero_media: "/archive/spooky-fighter.webp"
+tech_stack: ["TypeScript", "Canvas", "Web Audio API"]
+time_to_mvp: "2 weeks"
+---
+
+A bite-sized 2D fighting game demo built to prototype a robust character
+controller. The interesting work here was not the art — it was the
+**state machine** driving every move, cancel, and recovery frame.
+
+## The Core Problem
+
+Fighting games live and die by their state transitions. A jab must be
+cancellable into a special, but only during specific frames; a block must
+interrupt anything that is not already committed. Naive boolean flags collapse
+under this complexity almost immediately.
+
+## The State Machine
+
+I modeled the fighter as an explicit finite state machine. Each state declares
+which transitions it permits and on which frames, so illegal states are simply
+unrepresentable.
+
+```ts
+type FighterState =
+  | "idle"
+  | "walk"
+  | "jab"
+  | "special"
+  | "block"
+  | "hitstun";
+
+const transitions: Record<FighterState, FighterState[]> = {
+  idle: ["walk", "jab", "block"],
+  walk: ["idle", "jab", "block"],
+  jab: ["special", "idle"], // jab cancels into special
+  special: ["idle"],
+  block: ["idle"],
+  hitstun: ["idle"],
+};
+```
+
+<PromptVault title="State Machine Logic">
+The breakthrough was treating cancel windows as data, not control flow. Each
+state carries a `cancelFrames` range; the input buffer is consulted only inside
+that window. This collapsed a tangle of `if` statements into a single,
+inspectable transition table.
+</PromptVault>
+
+## What It Proved
+
+The state machine generalizes. The same transition table now drives a far more
+ambitious project — this demo was the cheap experiment that de-risked it.

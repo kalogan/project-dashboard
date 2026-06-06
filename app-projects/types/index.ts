@@ -27,3 +27,53 @@ export interface LogbookEntryMeta extends LogbookEntry {
 export interface LogbookEntryFull extends LogbookEntryMeta {
   content: string;
 }
+
+/**
+ * The 3-tier taxonomy that powers the Archive's filtering engine.
+ *
+ * - `portfolio` — highly polished, showcase-grade work.
+ * - `demo` — functional proofs of concept worth surfacing by default.
+ * - `archive` — deep legacy history, hidden until the user opts in.
+ */
+export type ArchiveTier = "portfolio" | "demo" | "archive";
+
+/** Public/private gate for an Archive entry. */
+export type ArchiveVisibility = "public" | "private";
+
+/**
+ * Frontmatter contract for a single Archive entry.
+ *
+ * Every `.mdx` file in `content/archive` MUST declare these fields. The set is
+ * strict: `tier` and `visibility` are constrained to literal unions so the
+ * filtering engine and badging can rely on them.
+ */
+export interface ArchiveEntry {
+  title: string;
+  year: number;
+  tier: ArchiveTier;
+  category: string;
+  visibility: ArchiveVisibility;
+  hero_media: string;
+  tech_stack: string[];
+  /**
+   * Optional headline metric surfaced on the detail page header
+   * (e.g. "6 weeks"). Not part of the required showcase contract.
+   */
+  time_to_mvp?: string;
+}
+
+/**
+ * A parsed Archive entry: validated frontmatter plus the derived `slug`
+ * (from the filename) used for masonry cards and detail routing.
+ */
+export interface ArchiveEntryMeta extends ArchiveEntry {
+  slug: string;
+}
+
+/**
+ * A fully loaded Archive entry — metadata plus the raw MDX body for rendering
+ * on the dynamic `/archive/[slug]` route.
+ */
+export interface ArchiveEntryFull extends ArchiveEntryMeta {
+  content: string;
+}
