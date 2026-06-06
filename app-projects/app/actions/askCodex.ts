@@ -1,6 +1,8 @@
 "use server";
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { getRateWindow, recordRequest } from "@/lib/rateLimit";
+import { RATE_LIMIT_TOKEN } from "@/lib/constants";
 import type { ChatTurn } from "@/types";
 
 /**
@@ -46,6 +48,12 @@ export async function askCodex(
       "GEMINI_API_KEY is not set. Add it to app-projects/.env.local and restart the dev server."
     );
   }
+
+  // Pre-emptively degrade before tripping the free-tier ceiling.
+  if (getRateWindow().remaining <= 0) {
+    throw new Error(RATE_LIMIT_TOKEN);
+  }
+  recordRequest();
 
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({

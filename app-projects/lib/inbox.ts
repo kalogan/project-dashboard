@@ -12,6 +12,7 @@ import type { InboxItem, InboxKind } from "@/types";
 
 export const INBOX_DIR = path.join(process.cwd(), "_inbox");
 const META_FILE = path.join(INBOX_DIR, "_meta.json");
+const STATUS_FILE = path.join(INBOX_DIR, "status.json");
 
 export interface InboxMetaEntry {
   mime: string;
@@ -91,6 +92,35 @@ export function readInbox(): InboxItem[] {
       if (b.capturedAt) return 1;
       return a.name.localeCompare(b.name);
     });
+}
+
+/** Shared media-compression progress, surfaced in the telemetry bar. */
+export interface MediaStatus {
+  active: boolean;
+  percent: number;
+  file: string;
+  phase: string;
+}
+
+export function writeStatus(status: MediaStatus): void {
+  try {
+    fs.mkdirSync(INBOX_DIR, { recursive: true });
+    fs.writeFileSync(STATUS_FILE, JSON.stringify(status), "utf8");
+  } catch {
+    // Best-effort telemetry; never let a status write break a commit.
+  }
+}
+
+export function clearStatus(): void {
+  writeStatus({ active: false, percent: 0, file: "", phase: "idle" });
+}
+
+export function readStatus(): MediaStatus {
+  try {
+    return JSON.parse(fs.readFileSync(STATUS_FILE, "utf8")) as MediaStatus;
+  } catch {
+    return { active: false, percent: 0, file: "", phase: "idle" };
+  }
 }
 
 /**

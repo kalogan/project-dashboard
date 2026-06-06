@@ -38,3 +38,13 @@ body {
     touch-action: pan-x pan-y;
   }
 }
+
+/* Clinical attention cue for breached telemetry thresholds (no spinners). */
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+.blink {
+  animation: blink 1s step-start infinite;
+}

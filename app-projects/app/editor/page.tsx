@@ -1,4 +1,5 @@
 import EditorForm from "@/components/editor/EditorForm";
+import TelemetryBar from "@/components/editor/TelemetryBar";
 import { readInbox } from "@/lib/inbox";
 
 export const metadata = {
@@ -35,7 +36,7 @@ export default function EditorPage() {
   const inboxItems = readInbox();
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-16">
+    <main className="mx-auto max-w-5xl px-6 py-16 pb-16">
       <h1 className="text-3xl font-extrabold tracking-tight text-white">
         Editor
       </h1>
@@ -47,6 +48,8 @@ export default function EditorPage() {
       <div className="mt-10">
         <EditorForm inboxItems={inboxItems} />
       </div>
+
+      <TelemetryBar />
     </main>
   );
 }

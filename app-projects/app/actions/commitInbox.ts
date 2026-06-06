@@ -13,6 +13,8 @@ import {
   readMeta,
   writeMeta,
   resolveInboxPath,
+  writeStatus,
+  clearStatus,
 } from "@/lib/inbox";
 import type { InboxKind, Pillar } from "@/types";
 
@@ -68,7 +70,7 @@ async function processImage(src: string, dir: string): Promise<string> {
  * Compress a video to a web-friendly H.264 mp4. ffmpeg runs as a child
  * process, so it never blocks the Node event loop for other requests.
  */
-function processVideo(src: string, dir: string): Promise<string> {
+function processVideo(src: string, dir: string, label: string): Promise<string> {
   const name = `${randomBase()}.mp4`;
   const dest = path.join(dir, name);
   return new Promise((resolve, reject) => {
@@ -77,6 +79,14 @@ function processVideo(src: string, dir: string): Promise<string> {
       .audioCodec("aac")
       .size("?x720")
       .outputOptions(["-crf 28", "-preset veryfast", "-movflags +faststart"])
+      .on("progress", (p) =>
+        writeStatus({
+          active: true,
+          percent: Math.min(99, Math.round(p.percent ?? 0)),
+          file: label,
+          phase: "encoding video",
+        })
+      )
       .on("end", () => resolve(name))
       .on("error", (err) =>
         reject(new Error(`Video compression failed: ${err.message}`))
@@ -155,26 +165,34 @@ export async function commitInbox(formData: FormData): Promise<{
   const meta = readMeta();
   const assets: ProcessedAsset[] = [];
 
-  for (const name of names) {
-    const src = resolveInboxPath(name);
-    if (!fs.existsSync(src)) continue;
-    const mime = meta[name]?.mime ?? mimeFromExt(name);
-    const kind = mimeToKind(mime);
+  try {
+    for (let i = 0; i < names.length; i++) {
+      const name = names[i];
+      const src = resolveInboxPath(name);
+      if (!fs.existsSync(src)) continue;
+      const mime = meta[name]?.mime ?? mimeFromExt(name);
+      const kind = mimeToKind(mime);
+      const pct = Math.round((i / names.length) * 100);
 
-    if (kind === "image") {
-      const file = await processImage(src, mediaDir);
-      assets.push({ url: `/media/${year}/${month}/${file}`, kind, original: name });
-    } else if (kind === "video") {
-      const file = await processVideo(src, mediaDir);
-      assets.push({ url: `/media/${year}/${month}/${file}`, kind, original: name });
-    } else {
-      // docs / other: passthrough, no compression.
-      await fs.promises.mkdir(docsDir, { recursive: true });
-      const ext = path.extname(name) || "";
-      const file = `${randomBase()}${ext}`;
-      await fs.promises.copyFile(src, path.join(docsDir, file));
-      assets.push({ url: `/docs/${file}`, kind, original: name });
+      if (kind === "image") {
+        writeStatus({ active: true, percent: pct, file: name, phase: "compressing image" });
+        const file = await processImage(src, mediaDir);
+        assets.push({ url: `/media/${year}/${month}/${file}`, kind, original: name });
+      } else if (kind === "video") {
+        const file = await processVideo(src, mediaDir, name);
+        assets.push({ url: `/media/${year}/${month}/${file}`, kind, original: name });
+      } else {
+        // docs / other: passthrough, no compression.
+        writeStatus({ active: true, percent: pct, file: name, phase: "filing document" });
+        await fs.promises.mkdir(docsDir, { recursive: true });
+        const ext = path.extname(name) || "";
+        const file = `${randomBase()}${ext}`;
+        await fs.promises.copyFile(src, path.join(docsDir, file));
+        assets.push({ url: `/docs/${file}`, kind, original: name });
+      }
     }
+  } finally {
+    clearStatus();
   }
 
   if (assets.length === 0) throw new Error("No valid files were processed.");
