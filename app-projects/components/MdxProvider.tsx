@@ -1,6 +1,9 @@
 import Link from "next/link";
 import type { AnchorHTMLAttributes, ReactNode } from "react";
 import PromptVault from "@/components/PromptVault";
+import SpecSheet from "@/components/mdx/SpecSheet";
+import TerminalBlock from "@/components/mdx/TerminalBlock";
+import MechanicFlow from "@/components/mdx/MechanicFlow";
 
 /**
  * The Developer Codex MDX component map.
@@ -111,5 +114,9 @@ export const mdxComponents = {
     );
   },
   hr: () => <hr className="my-10 border-gray-800" />,
+  // Bespoke components — globally available inside MDX without imports.
   PromptVault,
+  SpecSheet,
+  TerminalBlock,
+  MechanicFlow,
 };

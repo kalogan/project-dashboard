@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
-import { MDXRemote } from "next-mdx-remote/rsc";
 import { getAllPlaybookEntries, getPlaybookEntry } from "@/lib/mdx";
-import { mdxComponents } from "@/components/MdxProvider";
+import Mdx from "@/components/Mdx";
 
 interface PageProps {
   params: { slug: string[] };
@@ -47,7 +46,7 @@ export default function PlaybookEntryPage({ params }: PageProps) {
       </header>
 
       <div className="mt-2">
-        <MDXRemote source={entry.content} components={mdxComponents} />
+        <Mdx source={entry.content} />
       </div>
 
       {/* Evergreen focus: when, not prominent. Subtle stamp at the very end. */}

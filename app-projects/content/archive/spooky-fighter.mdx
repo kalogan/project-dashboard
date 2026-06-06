@@ -52,6 +52,17 @@ that window. This collapsed a tangle of `if` statements into a single,
 inspectable transition table.
 </PromptVault>
 
+## The Move Lifecycle
+
+<MechanicFlow
+  steps={[
+    { title: "Idle", description: "Neutral. Accepts walk, jab, or block." },
+    { title: "Jab", description: "Active frames; cancellable into a special." },
+    { title: "Special", description: "Committed — no further cancels." },
+    { title: "Cooldown", description: "Recovery frames before returning to idle." },
+  ]}
+/>
+
 ## What It Proved
 
 The state machine generalizes. The same transition table now drives a far more

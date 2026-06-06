@@ -11,10 +11,19 @@ The reproducible recipe. Dialed in, written down, no guessing before coffee.
 
 A 1:2 brew ratio, pulled tight.
 
-- **Dose:** 18 g in
-- **Yield:** 36 g out
-- **Time:** 27–30 seconds
-- **Temperature:** 93 °C
+<SpecSheet
+  title="Pull Parameters"
+  specs={[
+    { label: "Dose", value: "18 g in" },
+    { label: "Yield", value: "36 g out" },
+    { label: "Time", value: "27–30 seconds" },
+    { label: "Temperature", value: "93 °C" },
+  ]}
+/>
+
+Reset the grinder between bean changes:
+
+<TerminalBlock label="shell" command="grinder --purge && grinder --calibrate 18g" />
 
 ## Method
 

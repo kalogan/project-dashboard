@@ -1,9 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { MDXRemote } from "next-mdx-remote/rsc";
 import { getAllArchiveEntries, getArchiveEntry } from "@/lib/mdx";
-import { mdxComponents } from "@/components/MdxProvider";
+import Mdx from "@/components/Mdx";
 
 interface PageProps {
   params: { slug: string };
@@ -82,19 +81,23 @@ export default function ArchiveEntryPage({ params }: PageProps) {
         </ul>
       </header>
 
-      {/* Hero media — optimized .webp, lazy by default, fixed dimensions. */}
-      <Image
-        src={entry.hero_media}
-        alt={`${entry.title} — hero media`}
-        width={HERO_WIDTH}
-        height={HERO_HEIGHT}
-        sizes="(min-width: 768px) 65ch, 100vw"
-        className="mt-8 h-auto w-full border border-gray-800 object-cover"
-      />
+      {/* Hero media — optimized .webp, lazy by default, fixed dimensions.
+          Guarded so entries authored without a hero (e.g. via the editor)
+          don't pass an empty src to next/image. */}
+      {entry.hero_media && (
+        <Image
+          src={entry.hero_media}
+          alt={`${entry.title} — hero media`}
+          width={HERO_WIDTH}
+          height={HERO_HEIGHT}
+          sizes="(min-width: 768px) 65ch, 100vw"
+          className="mt-8 h-auto w-full border border-gray-800 object-cover"
+        />
+      )}
 
       {/* Body — rendered MDX with the monochrome design tokens. */}
       <article className="mt-10">
-        <MDXRemote source={entry.content} components={mdxComponents} />
+        <Mdx source={entry.content} />
       </article>
     </main>
   );
