@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+# Regression guardrail: lint + unit/component tests must pass before a commit.
+# core.hooksPath points here; the hook runs from the git root, so cd into the app.
+cd "$(dirname "$0")/.." || exit 1
+
+echo "▶ pre-commit: eslint"
+npm run lint || exit 1
+
+echo "▶ pre-commit: vitest"
+npm run test || exit 1

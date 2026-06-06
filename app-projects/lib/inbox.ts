@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { INBOX_DIR } from "@/lib/paths";
 import type { InboxItem, InboxKind } from "@/types";
 
 /**
@@ -10,7 +11,7 @@ import type { InboxItem, InboxKind } from "@/types";
  * capture date (so we don't re-parse on every render).
  */
 
-export const INBOX_DIR = path.join(process.cwd(), "_inbox");
+export { INBOX_DIR };
 const META_FILE = path.join(INBOX_DIR, "_meta.json");
 const STATUS_FILE = path.join(INBOX_DIR, "status.json");
 

@@ -3,6 +3,7 @@ import path from "node:path";
 import { cache } from "react";
 import matter from "gray-matter";
 import { tagToSlug } from "@/lib/slug";
+import { CONTENT_ROOT } from "@/lib/paths";
 import type {
   LogbookEntry,
   LogbookEntryMeta,
@@ -28,7 +29,7 @@ import type {
  * gray-matter, and exposes typed accessors. This module touches `node:fs` and
  * is therefore Server-Component / build-time only.
  */
-const LOGBOOK_DIR = path.join(process.cwd(), "content", "logbook");
+const LOGBOOK_DIR = path.join(CONTENT_ROOT, "logbook");
 
 // On the production (deployed) build, only `public` entries are ever read —
 // private/draft files never reach the client bundle, search index, or graph.
@@ -102,7 +103,7 @@ export function getLogbookEntry(slug: string): LogbookEntryFull | null {
 /* The Archive                                                                */
 /* -------------------------------------------------------------------------- */
 
-const ARCHIVE_DIR = path.join(process.cwd(), "content", "archive");
+const ARCHIVE_DIR = path.join(CONTENT_ROOT, "archive");
 
 const ARCHIVE_TIERS: readonly ArchiveTier[] = ["portfolio", "demo", "archive"];
 
@@ -170,7 +171,7 @@ export function getArchiveEntry(slug: string): ArchiveEntryFull | null {
 /* The Playbook                                                               */
 /* -------------------------------------------------------------------------- */
 
-const PLAYBOOK_DIR = path.join(process.cwd(), "content", "playbook");
+const PLAYBOOK_DIR = path.join(CONTENT_ROOT, "playbook");
 
 /** Narrow an arbitrary value to a PlaybookStatus, defaulting to `draft`. */
 function toStatus(value: unknown): PlaybookStatus {

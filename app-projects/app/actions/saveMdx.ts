@@ -5,6 +5,7 @@ import path from "node:path";
 import matter from "gray-matter";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { CONTENT_ROOT } from "@/lib/paths";
 
 /**
  * Local-first content authoring.
@@ -81,7 +82,7 @@ export async function saveMdxFile(formData: FormData) {
 
   const fileContents = matter.stringify(`\n${body.trim()}\n`, frontmatter);
 
-  const dir = path.join(process.cwd(), "content", pillar);
+  const dir = path.join(CONTENT_ROOT, pillar);
   await fs.promises.mkdir(dir, { recursive: true });
   await fs.promises.writeFile(path.join(dir, `${slug}.mdx`), fileContents, "utf8");
 

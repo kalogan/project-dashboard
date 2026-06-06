@@ -188,6 +188,7 @@ export default function EditorForm({
         <textarea
           ref={textareaRef}
           name="body"
+          aria-label="Body"
           value={body}
           onChange={(event) => setBody(event.target.value)}
           onPaste={onPaste}

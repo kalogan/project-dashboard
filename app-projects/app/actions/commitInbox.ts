@@ -7,6 +7,7 @@ import sharp from "sharp";
 import ffmpeg from "fluent-ffmpeg";
 import ffmpegStatic from "ffmpeg-static";
 import { revalidatePath } from "next/cache";
+import { CONTENT_ROOT } from "@/lib/paths";
 import {
   mimeToKind,
   mimeFromExt,
@@ -224,7 +225,7 @@ export async function commitInbox(formData: FormData): Promise<{
     hero,
   });
 
-  const dir = path.join(process.cwd(), "content", pillar as string);
+  const dir = path.join(CONTENT_ROOT, pillar as string);
   await fs.promises.mkdir(dir, { recursive: true });
   await fs.promises.writeFile(
     path.join(dir, `${slug}.mdx`),

@@ -1,32 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
+import ThemeToggle from "@/components/ThemeToggle";
 import SpecSheet from "@/components/mdx/SpecSheet";
 import TerminalBlock from "@/components/mdx/TerminalBlock";
 
 /**
  * Theme settings + live preview.
  *
- * Toggles the active `next-themes` string between the three exact states; the
- * preview below (a real <TerminalBlock> and <SpecSheet>) reflects the CSS
- * variable swap instantly. Mounted-guard avoids a hydration mismatch since the
- * resolved theme is only known on the client.
+ * The toggle sets the active `next-themes` string; the preview below (a real
+ * <TerminalBlock> and <SpecSheet>) reflects the CSS variable swap instantly.
  */
-const THEMES: { id: string; label: string; blurb: string }[] = [
-  { id: "light", label: "Light", blurb: "Off-white, charcoal text." },
-  { id: "dark", label: "Dark", blurb: "Clinical pitch-black default." },
-  {
-    id: "visceral",
-    label: "Visceral",
-    blurb: "Maroon structure, bioluminescent teal accents.",
-  },
-];
-
 export default function SettingsPage() {
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  // Touch the hook so the page is firmly client-rendered alongside the toggle.
+  useTheme();
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
@@ -41,29 +28,8 @@ export default function SettingsPage() {
         <h2 className="border-b border-theme-border pb-2 font-mono text-xs font-semibold uppercase tracking-widest text-theme-muted">
           Theme
         </h2>
-        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {THEMES.map(({ id, label, blurb }) => {
-            const active = mounted && theme === id;
-            return (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setTheme(id)}
-                aria-pressed={active}
-                className={`rounded-none border p-4 text-left transition-all duration-200 ease-out ${
-                  active
-                    ? "border-theme-accent text-theme-text shadow-glow"
-                    : "border-theme-border text-theme-muted hover:border-theme-accent hover:text-theme-text"
-                }`}
-              >
-                <span className="block font-mono text-xs font-semibold uppercase tracking-widest">
-                  {label}
-                  {active && <span className="text-theme-accent"> ●</span>}
-                </span>
-                <span className="mt-1 block text-sm font-normal">{blurb}</span>
-              </button>
-            );
-          })}
+        <div className="mt-4">
+          <ThemeToggle />
         </div>
       </section>
 
@@ -94,3 +60,4 @@ export default function SettingsPage() {
     </main>
   );
 }
+
