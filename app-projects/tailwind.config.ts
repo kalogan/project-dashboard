@@ -3,11 +3,16 @@ import type { Config } from "tailwindcss";
 /**
  * Developer Codex — Design System
  *
- * Strict monochrome enforcement: the color palette is fully replaced (not
- * extended) so that no chromatic colors (blues, reds, greens) can leak into
- * the UI. Visual hierarchy is built exclusively from True Black, True White,
- * a neutral grayscale spectrum, borders, spacing, and typographic weight.
+ * The palette is fully replaced (no chromatic colors leak in by default) and is
+ * driven entirely by RGB-channel CSS variables, so the theme engine
+ * (`next-themes` + `[data-theme]` in globals.css) can swap the exact output for
+ * the `light`, `dark`, and `visceral` themes without touching components.
+ *
+ * Channel-based vars (`5 5 5`) let Tailwind's opacity modifiers keep working,
+ * e.g. `bg-black/80` → `rgb(var(--c-black) / 0.8)`.
  */
+const v = (name: string) => `rgb(var(${name}) / <alpha-value>)`;
+
 const config: Config = {
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
@@ -16,23 +21,33 @@ const config: Config = {
     "./content/**/*.{md,mdx}",
   ],
   theme: {
-    // Top-level `colors` REPLACES the Tailwind defaults — monochrome only.
     colors: {
       transparent: "transparent",
       current: "currentColor",
-      black: "#000000", // True Black
-      white: "#FFFFFF", // True White
+      // The structural monochrome ramp — themed via CSS variables. `black` and
+      // `white` are semantic (deepest surface / strongest text), so they invert
+      // correctly in the light theme rather than meaning a literal color.
+      black: v("--c-black"),
+      white: v("--c-white"),
       gray: {
-        100: "#F5F5F5",
-        200: "#E5E5E5",
-        300: "#D4D4D4",
-        400: "#A3A3A3",
-        500: "#737373",
-        600: "#525252",
-        700: "#404040",
-        800: "#262626",
-        900: "#171717",
+        100: v("--c-gray-100"),
+        200: v("--c-gray-200"),
+        300: v("--c-gray-300"),
+        400: v("--c-gray-400"),
+        500: v("--c-gray-500"),
+        600: v("--c-gray-600"),
+        700: v("--c-gray-700"),
+        800: v("--c-gray-800"),
+        900: v("--c-gray-900"),
       },
+      // Named, role-based theme tokens (the engine's public API).
+      "theme-base": v("--c-black"),
+      "theme-surface": v("--c-gray-900"),
+      "theme-text": v("--c-white"),
+      "theme-muted": v("--c-gray-400"),
+      "theme-border": v("--c-gray-800"),
+      "theme-accent": v("--c-accent"),
+      "theme-glow": v("--c-glow"),
     },
     extend: {
       fontFamily: {
@@ -44,6 +59,9 @@ const config: Config = {
         normal: "400",
         semibold: "600",
         extrabold: "800",
+      },
+      boxShadow: {
+        glow: "0 0 12px rgb(var(--c-glow) / 0.55)",
       },
     },
   },

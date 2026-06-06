@@ -16,7 +16,7 @@ function intensityClass(count: number): string {
   if (count === 1) return "bg-gray-800";
   if (count === 2) return "bg-gray-600";
   if (count === 3) return "bg-gray-400";
-  return "bg-white";
+  return "bg-theme-accent"; // data peak → teal under the visceral theme
 }
 
 /** Local-time ISO day (YYYY-MM-DD) — avoids UTC off-by-one from toISOString. */

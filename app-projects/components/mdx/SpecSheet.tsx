@@ -19,22 +19,22 @@ export default function SpecSheet({
   specs: Spec[];
 }) {
   return (
-    <section className="my-6 border border-gray-800">
+    <section className="my-6 border border-theme-border transition-all duration-200 ease-out">
       {title && (
-        <h3 className="border-b border-gray-800 px-4 py-3 font-mono text-xs font-semibold uppercase tracking-widest text-gray-400">
+        <h3 className="border-b border-theme-border px-4 py-3 font-mono text-xs font-semibold uppercase tracking-widest text-theme-muted">
           {title}
         </h3>
       )}
-      <dl className="divide-y divide-gray-800">
+      <dl className="divide-y divide-theme-border">
         {specs.map((spec) => (
           <div
             key={spec.label}
             className="grid grid-cols-1 gap-1 px-4 py-3 sm:grid-cols-[12rem_1fr] sm:gap-4"
           >
-            <dt className="font-mono text-xs uppercase tracking-widest text-gray-400">
+            <dt className="font-mono text-xs uppercase tracking-widest text-theme-muted">
               {spec.label}
             </dt>
-            <dd className="font-semibold text-white">{spec.value}</dd>
+            <dd className="font-semibold text-theme-text">{spec.value}</dd>
           </div>
         ))}
       </dl>
