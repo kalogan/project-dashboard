@@ -60,17 +60,20 @@ export async function saveMdxFile(formData: FormData) {
   // against the existing typed readers.
   const frontmatter: Record<string, unknown> = { title, tags };
   if (pillar === "logbook") {
+    // The Logbook is the private timeline — never public.
+    frontmatter.visibility = "private";
     frontmatter.date = today;
     frontmatter.location = "";
     frontmatter.summary = "";
   } else if (pillar === "archive") {
+    frontmatter.visibility = "public";
     frontmatter.year = new Date().getFullYear();
     frontmatter.tier = "demo";
     frontmatter.category = "";
-    frontmatter.visibility = "private";
     frontmatter.hero_media = "";
     frontmatter.tech_stack = tags;
   } else {
+    frontmatter.visibility = "public";
     frontmatter.category = "Uncategorized";
     frontmatter.last_updated = today;
     frontmatter.status = "draft";

@@ -33,6 +33,12 @@ BESPOKE COMPONENTS — prefer these over plain markdown where they fit. They are
 - <PromptVault title="...">collapsible notes</PromptVault> — lessons learned / decisions.
 - [[other-entry-slug]] — a bi-directional wiki link to another codex entry.
 
+VISIBILITY (deployment privacy)
+- Logbook entries are ALWAYS private (personal timeline) — never mark a Logbook entry public.
+- Archive case studies are public by default unless the user says otherwise.
+- Playbook entries are public unless the user marks them a draft.
+- If you ever emit frontmatter, set the \`visibility\` field accordingly ("public" | "private" | "draft"); when unsure, choose "private".
+
 RULES
 - Use standard markdown headings (##), prose, lists, and inline code for everything else.
 - Keep prose tight. Favour the bespoke components for structured data instead of loose bullet lists.

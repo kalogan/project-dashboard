@@ -1,4 +1,11 @@
 /**
+ * Deployment-privacy gate, required on every entry. `public` ships to the live
+ * site; `private` and `draft` are local-only. Missing → defaults to `private`
+ * (default-deny).
+ */
+export type Visibility = "public" | "private" | "draft";
+
+/**
  * Frontmatter contract for a single Logbook entry.
  *
  * Every `.mdx` file in `content/logbook` MUST declare these fields in its
@@ -10,6 +17,7 @@ export interface LogbookEntry {
   location: string;
   tags: string[];
   summary: string;
+  visibility: Visibility;
 }
 
 /**
@@ -37,8 +45,8 @@ export interface LogbookEntryFull extends LogbookEntryMeta {
  */
 export type ArchiveTier = "portfolio" | "demo" | "archive";
 
-/** Public/private gate for an Archive entry. */
-export type ArchiveVisibility = "public" | "private";
+/** @deprecated use the shared {@link Visibility} type. */
+export type ArchiveVisibility = Visibility;
 
 /**
  * Frontmatter contract for a single Archive entry.
@@ -52,7 +60,7 @@ export interface ArchiveEntry {
   year: number;
   tier: ArchiveTier;
   category: string;
-  visibility: ArchiveVisibility;
+  visibility: Visibility;
   hero_media: string;
   tech_stack: string[];
   /**
@@ -98,6 +106,7 @@ export interface PlaybookEntry {
   status: PlaybookStatus;
   /** Optional cross-pillar tags for the global taxonomy. */
   tags: string[];
+  visibility: Visibility;
 }
 
 /** The three content pillars. */
@@ -132,6 +141,7 @@ export interface TaggedEntry {
   title: string;
   path: string;
   tags: string[];
+  visibility: Visibility;
   /** Human-readable date/year for display. */
   display: string;
   /** Millisecond timestamp for descending chronological sorts. */

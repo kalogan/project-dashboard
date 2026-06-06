@@ -104,11 +104,20 @@ function assetMarkdown(asset: ProcessedAsset): string {
   return `[${asset.original}](${asset.url})`;
 }
 
+/** The Logbook is always private; Archive/Playbook are public by default. */
+function visibilityForPillar(pillar: Pillar): "public" | "private" {
+  return pillar === "logbook" ? "private" : "public";
+}
+
 function buildFrontmatter(
   pillar: Pillar,
   opts: { title: string; tags: string[]; date: string; hero?: string }
 ): Record<string, unknown> {
-  const fm: Record<string, unknown> = { title: opts.title, tags: opts.tags };
+  const fm: Record<string, unknown> = {
+    title: opts.title,
+    tags: opts.tags,
+    visibility: visibilityForPillar(pillar),
+  };
   if (pillar === "logbook") {
     fm.date = opts.date;
     fm.location = "";
@@ -117,7 +126,6 @@ function buildFrontmatter(
     fm.year = Number(opts.date.slice(0, 4)) || new Date().getFullYear();
     fm.tier = "archive";
     fm.category = "";
-    fm.visibility = "private";
     fm.hero_media = opts.hero ?? "";
     fm.tech_stack = opts.tags;
   } else {
@@ -158,7 +166,13 @@ export async function commitInbox(formData: FormData): Promise<{
     .filter(Boolean);
 
   const [year, month] = [date.slice(0, 4), date.slice(5, 7)];
-  const mediaDir = path.join(process.cwd(), "public", "media", year, month);
+  // Private/draft entries route their media to a git-ignored subfolder so the
+  // raw photos never leave the local machine.
+  const isPrivate = visibilityForPillar(pillar as Pillar) !== "public";
+  const mediaBase = isPrivate
+    ? `media/private/${year}/${month}`
+    : `media/${year}/${month}`;
+  const mediaDir = path.join(process.cwd(), "public", ...mediaBase.split("/"));
   const docsDir = path.join(process.cwd(), "public", "docs");
   await fs.promises.mkdir(mediaDir, { recursive: true });
 
@@ -177,10 +191,10 @@ export async function commitInbox(formData: FormData): Promise<{
       if (kind === "image") {
         writeStatus({ active: true, percent: pct, file: name, phase: "compressing image" });
         const file = await processImage(src, mediaDir);
-        assets.push({ url: `/media/${year}/${month}/${file}`, kind, original: name });
+        assets.push({ url: `/${mediaBase}/${file}`, kind, original: name });
       } else if (kind === "video") {
         const file = await processVideo(src, mediaDir, name);
-        assets.push({ url: `/media/${year}/${month}/${file}`, kind, original: name });
+        assets.push({ url: `/${mediaBase}/${file}`, kind, original: name });
       } else {
         // docs / other: passthrough, no compression.
         writeStatus({ active: true, percent: pct, file: name, phase: "filing document" });

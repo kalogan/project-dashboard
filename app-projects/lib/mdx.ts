@@ -11,7 +11,7 @@ import type {
   ArchiveEntryMeta,
   ArchiveEntryFull,
   ArchiveTier,
-  ArchiveVisibility,
+  Visibility,
   PlaybookEntry,
   PlaybookEntryMeta,
   PlaybookEntryFull,
@@ -29,6 +29,24 @@ import type {
  */
 const LOGBOOK_DIR = path.join(process.cwd(), "content", "logbook");
 
+// On the production (deployed) build, only `public` entries are ever read —
+// private/draft files never reach the client bundle, search index, or graph.
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
+
+/** Narrow a value to a Visibility, defaulting to `private` (default-deny). */
+function toVisibility(value: unknown): Visibility {
+  return value === "public" || value === "draft" ? value : "private";
+}
+
+/** In production, keep only public entries; in dev, keep everything. */
+function visibilityGate<T extends { visibility: Visibility }>(
+  entries: T[]
+): T[] {
+  return IS_PRODUCTION
+    ? entries.filter((entry) => entry.visibility === "public")
+    : entries;
+}
+
 /** Coerce raw gray-matter frontmatter into a typed LogbookEntry. */
 function toLogbookEntry(data: Record<string, unknown>): LogbookEntry {
   return {
@@ -37,6 +55,7 @@ function toLogbookEntry(data: Record<string, unknown>): LogbookEntry {
     location: String(data.location ?? ""),
     tags: Array.isArray(data.tags) ? data.tags.map(String) : [],
     summary: String(data.summary ?? ""),
+    visibility: toVisibility(data.visibility),
   };
 }
 
@@ -57,7 +76,7 @@ export const getAllLogbookEntries = cache((): LogbookEntryMeta[] => {
       return { slug, ...toLogbookEntry(data) };
     });
 
-  return entries.sort(
+  return visibilityGate(entries).sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 });
@@ -72,7 +91,10 @@ export function getLogbookEntry(slug: string): LogbookEntryFull | null {
 
   const raw = fs.readFileSync(filePath, "utf8");
   const { data, content } = matter(raw);
-  return { slug, ...toLogbookEntry(data), content };
+  const entry = toLogbookEntry(data);
+  // Default-deny on the live server: never serve a non-public entry directly.
+  if (IS_PRODUCTION && entry.visibility !== "public") return null;
+  return { slug, ...entry, content };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -88,11 +110,6 @@ function toTier(value: unknown): ArchiveTier {
   return ARCHIVE_TIERS.includes(value as ArchiveTier)
     ? (value as ArchiveTier)
     : "archive";
-}
-
-/** Narrow an arbitrary value to a visibility flag, defaulting to `private`. */
-function toVisibility(value: unknown): ArchiveVisibility {
-  return value === "public" ? "public" : "private";
 }
 
 /** Coerce raw gray-matter frontmatter into a typed ArchiveEntry. */
@@ -130,7 +147,7 @@ export const getAllArchiveEntries = cache((): ArchiveEntryMeta[] => {
       return { slug, ...toArchiveEntry(data) };
     });
 
-  return entries.sort((a, b) => b.year - a.year);
+  return visibilityGate(entries).sort((a, b) => b.year - a.year);
 });
 
 /**
@@ -143,7 +160,9 @@ export function getArchiveEntry(slug: string): ArchiveEntryFull | null {
 
   const raw = fs.readFileSync(filePath, "utf8");
   const { data, content } = matter(raw);
-  return { slug, ...toArchiveEntry(data), content };
+  const entry = toArchiveEntry(data);
+  if (IS_PRODUCTION && entry.visibility !== "public") return null;
+  return { slug, ...entry, content };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -165,6 +184,7 @@ function toPlaybookEntry(data: Record<string, unknown>): PlaybookEntry {
     last_updated: String(data.last_updated ?? ""),
     status: toStatus(data.status),
     tags: Array.isArray(data.tags) ? data.tags.map(String) : [],
+    visibility: toVisibility(data.visibility),
   };
 }
 
@@ -193,21 +213,21 @@ function walkMdx(dir: string, base: string = dir): string[] {
  * category, then title, for stable hierarchical navigation.
  */
 export const getAllPlaybookEntries = cache((): PlaybookEntryMeta[] => {
-  return walkMdx(PLAYBOOK_DIR)
-    .map((relPath) => {
-      const slug = relPath.replace(/\.mdx$/, "").split("/");
-      const raw = fs.readFileSync(path.join(PLAYBOOK_DIR, relPath), "utf8");
-      const { data } = matter(raw);
-      return {
-        slug,
-        path: `/playbook/${slug.join("/")}`,
-        ...toPlaybookEntry(data),
-      };
-    })
-    .sort(
-      (a, b) =>
-        a.category.localeCompare(b.category) || a.title.localeCompare(b.title)
-    );
+  const entries = walkMdx(PLAYBOOK_DIR).map((relPath) => {
+    const slug = relPath.replace(/\.mdx$/, "").split("/");
+    const raw = fs.readFileSync(path.join(PLAYBOOK_DIR, relPath), "utf8");
+    const { data } = matter(raw);
+    return {
+      slug,
+      path: `/playbook/${slug.join("/")}`,
+      ...toPlaybookEntry(data),
+    };
+  });
+
+  return visibilityGate(entries).sort(
+    (a, b) =>
+      a.category.localeCompare(b.category) || a.title.localeCompare(b.title)
+  );
 });
 
 /**
@@ -238,10 +258,12 @@ export function getPlaybookEntry(slug: string[]): PlaybookEntryFull | null {
 
   const raw = fs.readFileSync(filePath, "utf8");
   const { data, content } = matter(raw);
+  const entry = toPlaybookEntry(data);
+  if (IS_PRODUCTION && entry.visibility !== "public") return null;
   return {
     slug,
     path: `/playbook/${slug.join("/")}`,
-    ...toPlaybookEntry(data),
+    ...entry,
     content,
   };
 }
@@ -266,6 +288,7 @@ export const getTaggedEntries = cache((): TaggedEntry[] => {
     title: entry.title,
     path: `/logbook/${entry.slug}`,
     tags: entry.tags,
+    visibility: entry.visibility,
     display: entry.date,
     sortKey: new Date(entry.date).getTime() || 0,
   }));
@@ -275,6 +298,7 @@ export const getTaggedEntries = cache((): TaggedEntry[] => {
     title: entry.title,
     path: `/archive/${entry.slug}`,
     tags: entry.tech_stack,
+    visibility: entry.visibility,
     display: String(entry.year),
     sortKey: new Date(`${entry.year}-01-01`).getTime() || 0,
   }));
@@ -284,12 +308,24 @@ export const getTaggedEntries = cache((): TaggedEntry[] => {
     title: entry.title,
     path: entry.path,
     tags: entry.tags,
+    visibility: entry.visibility,
     display: entry.last_updated,
     sortKey: new Date(entry.last_updated).getTime() || 0,
   }));
 
   return [...logbook, ...archive, ...playbook];
 });
+
+/**
+ * Non-public (private/draft) entries across all pillars — for the local-only
+ * "Vault" dashboard module. In production the readers already drop these, so
+ * this returns nothing; it is only meaningful (and only rendered) in dev.
+ */
+export const getNonPublicEntries = cache((): TaggedEntry[] =>
+  getTaggedEntries()
+    .filter((entry) => entry.visibility !== "public")
+    .sort((a, b) => b.sortKey - a.sortKey)
+);
 
 /**
  * Every unique tag across all three pillars, de-duplicated by slug (so

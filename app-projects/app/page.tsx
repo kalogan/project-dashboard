@@ -3,6 +3,7 @@ import Link from "next/link";
 import SearchTrigger from "@/components/SearchTrigger";
 import ActivityHeatmap from "@/components/ActivityHeatmap";
 import SurfaceModule from "@/components/SurfaceModule";
+import VaultModule from "@/components/VaultModule";
 import {
   getAllLogbookEntries,
   getAllArchiveEntries,
@@ -51,6 +52,13 @@ export default function Home() {
       <div className="mt-10">
         <SurfaceModule />
       </div>
+
+      {/* Local-only Vault: private/draft roster (never rendered in production). */}
+      {process.env.NODE_ENV === "development" && (
+        <div className="mt-10">
+          <VaultModule />
+        </div>
+      )}
 
       <div className="mt-12 grid grid-cols-1 gap-10 lg:grid-cols-3">
         {/* Highlight — the only imagery on the page. */}
