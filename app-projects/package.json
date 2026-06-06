@@ -10,6 +10,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "score": "node scripts/pre-flight-score.js",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -29,7 +30,8 @@
     "next-themes": "^0.4.6",
     "react": "^18",
     "react-dom": "^18",
-    "sharp": "^0.34.5"
+    "sharp": "^0.34.5",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",

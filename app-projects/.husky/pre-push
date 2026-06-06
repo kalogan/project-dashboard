@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+# Pre-Flight Matrix: abort the push if the Codex Health Score drops below 90.
+cd "$(dirname "$0")/.." || exit 1
+npm run score || exit 1
