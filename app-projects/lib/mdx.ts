@@ -18,6 +18,7 @@ import type {
   PlaybookCategory,
   PlaybookStatus,
   TaggedEntry,
+  SearchRecord,
 } from "@/types";
 
 /**
@@ -326,6 +327,80 @@ export const getNonPublicEntries = cache((): TaggedEntry[] =>
     .filter((entry) => entry.visibility !== "public")
     .sort((a, b) => b.sortKey - a.sortKey)
 );
+
+/* -------------------------------------------------------------------------- */
+/* Full-text search index                                                     */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Reduce an MDX body to clean, searchable plain text: drop fenced code, JSX
+ * component wrappers (`<SpecSheet …/>`), HTML tags, link/wiki syntax, and
+ * markdown punctuation so the index isn't bloated with code/markup tokens.
+ */
+function sanitizeBody(body: string): string {
+  return body
+    .replace(/```[\s\S]*?```/g, " ") // fenced code blocks
+    .replace(/<[^>]*>/g, " ") // JSX/HTML tags (incl. multiline component props)
+    .replace(/\[\[([^\]]+)\]\]/g, "$1") // wiki links → label
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1") // md links → label
+    .replace(/[#>*_`~|]/g, " ") // markdown punctuation
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Build the full-text search index. Honors the Vault Guardrail: it reads only
+ * the visibility-gated entries, so on the production build the body text of
+ * private/draft (and the entire Logbook) is never serialized into the public
+ * index. In development it includes everything for full local recall.
+ */
+export const generateSearchIndex = cache((): SearchRecord[] => {
+  const records: SearchRecord[] = [];
+
+  for (const entry of getAllLogbookEntries()) {
+    const full = getLogbookEntry(entry.slug);
+    if (!full) continue;
+    records.push({
+      id: `logbook:${entry.slug}`,
+      title: entry.title,
+      url: `/logbook/${entry.slug}`,
+      pillar: "logbook",
+      tags: entry.tags,
+      date: entry.date,
+      body: sanitizeBody(full.content),
+    });
+  }
+
+  for (const entry of getAllArchiveEntries()) {
+    const full = getArchiveEntry(entry.slug);
+    if (!full) continue;
+    records.push({
+      id: `archive:${entry.slug}`,
+      title: entry.title,
+      url: `/archive/${entry.slug}`,
+      pillar: "archive",
+      tags: entry.tech_stack,
+      date: String(entry.year),
+      body: sanitizeBody(full.content),
+    });
+  }
+
+  for (const entry of getAllPlaybookEntries()) {
+    const full = getPlaybookEntry(entry.slug);
+    if (!full) continue;
+    records.push({
+      id: `playbook:${entry.slug.join("/")}`,
+      title: entry.title,
+      url: entry.path,
+      pillar: "playbook",
+      tags: entry.tags,
+      date: entry.last_updated,
+      body: sanitizeBody(full.content),
+    });
+  }
+
+  return records;
+});
 
 /**
  * Every unique tag across all three pillars, de-duplicated by slug (so

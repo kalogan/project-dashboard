@@ -118,6 +118,20 @@ export interface ChatTurn {
   text: string;
 }
 
+/**
+ * A flattened full-text search record (one per entry) consumed by the
+ * client-side flexsearch index. `body` is sanitized plain text.
+ */
+export interface SearchRecord {
+  id: string;
+  title: string;
+  url: string;
+  pillar: Pillar;
+  tags: string[];
+  date: string;
+  body: string;
+}
+
 /** How a triage file is routed for processing. */
 export type InboxKind = "image" | "video" | "doc" | "other";
 
