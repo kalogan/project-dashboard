@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import SearchTrigger from "@/components/SearchTrigger";
+import ActivityHeatmap from "@/components/ActivityHeatmap";
 import {
   getAllLogbookEntries,
   getAllArchiveEntries,
@@ -36,7 +37,12 @@ export default function Home() {
         <SearchTrigger />
       </div>
 
-      <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-3">
+      {/* Full-width telemetry banner above the three-column layout. */}
+      <div className="mt-10">
+        <ActivityHeatmap />
+      </div>
+
+      <div className="mt-12 grid grid-cols-1 gap-10 lg:grid-cols-3">
         {/* Highlight — the only imagery on the page. */}
         <section>
           <SectionHeader>Latest Shipped</SectionHeader>

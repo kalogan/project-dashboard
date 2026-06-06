@@ -1,8 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getAllArchiveEntries, getArchiveEntry } from "@/lib/mdx";
+import { getAllArchiveEntries, getArchiveEntry, tagToSlug } from "@/lib/mdx";
 import Mdx from "@/components/Mdx";
+import Backlinks from "@/components/Backlinks";
 
 interface PageProps {
   params: { slug: string };
@@ -71,11 +72,13 @@ export default function ArchiveEntryPage({ params }: PageProps) {
         {/* Tech stack — monochrome bordered tags, uppercase, letter-spaced. */}
         <ul className="mt-5 flex flex-wrap gap-2">
           {entry.tech_stack.map((tech) => (
-            <li
-              key={tech}
-              className="border border-gray-700 px-2 py-1 font-mono text-[0.65rem] uppercase tracking-widest text-gray-400"
-            >
-              {tech}
+            <li key={tech}>
+              <Link
+                href={`/tags/${tagToSlug(tech)}`}
+                className="block border border-gray-700 px-2 py-1 font-mono text-[0.65rem] uppercase tracking-widest text-gray-400 transition-colors hover:border-gray-500 hover:text-white"
+              >
+                {tech}
+              </Link>
             </li>
           ))}
         </ul>
@@ -99,6 +102,8 @@ export default function ArchiveEntryPage({ params }: PageProps) {
       <article className="mt-10">
         <Mdx source={entry.content} />
       </article>
+
+      <Backlinks slug={entry.slug} />
     </main>
   );
 }

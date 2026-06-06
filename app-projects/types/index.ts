@@ -96,6 +96,26 @@ export interface PlaybookEntry {
   category: string;
   last_updated: string;
   status: PlaybookStatus;
+  /** Optional cross-pillar tags for the global taxonomy. */
+  tags: string[];
+}
+
+/** The three content pillars. */
+export type Pillar = "logbook" | "archive" | "playbook";
+
+/**
+ * A normalized, cross-pillar entry used by the global tag taxonomy and the
+ * activity telemetry — a common shape regardless of the source schema.
+ */
+export interface TaggedEntry {
+  pillar: Pillar;
+  title: string;
+  path: string;
+  tags: string[];
+  /** Human-readable date/year for display. */
+  display: string;
+  /** Millisecond timestamp for descending chronological sorts. */
+  sortKey: number;
 }
 
 /**

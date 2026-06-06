@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
+import { tagToSlug } from "@/lib/slug";
 import type {
   LogbookEntry,
   LogbookEntryMeta,
@@ -15,6 +16,7 @@ import type {
   PlaybookEntryFull,
   PlaybookCategory,
   PlaybookStatus,
+  TaggedEntry,
 } from "@/types";
 
 /**
@@ -161,6 +163,7 @@ function toPlaybookEntry(data: Record<string, unknown>): PlaybookEntry {
     category: String(data.category ?? "Uncategorized"),
     last_updated: String(data.last_updated ?? ""),
     status: toStatus(data.status),
+    tags: Array.isArray(data.tags) ? data.tags.map(String) : [],
   };
 }
 
@@ -240,4 +243,193 @@ export function getPlaybookEntry(slug: string[]): PlaybookEntryFull | null {
     ...toPlaybookEntry(data),
     content,
   };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Global tag taxonomy                                                        */
+/* -------------------------------------------------------------------------- */
+
+// Re-exported so server callers can keep importing it from here, while client
+// components import it directly from the fs-free "@/lib/slug".
+export { tagToSlug };
+
+/**
+ * Collapse all three pillars into a single normalized shape for the tag
+ * taxonomy. Archive entries expose their `tech_stack` as tags; Logbook and
+ * Playbook expose their `tags`. Each entry carries a `sortKey` for descending
+ * chronological ordering.
+ */
+export function getTaggedEntries(): TaggedEntry[] {
+  const logbook: TaggedEntry[] = getAllLogbookEntries().map((entry) => ({
+    pillar: "logbook",
+    title: entry.title,
+    path: `/logbook/${entry.slug}`,
+    tags: entry.tags,
+    display: entry.date,
+    sortKey: new Date(entry.date).getTime() || 0,
+  }));
+
+  const archive: TaggedEntry[] = getAllArchiveEntries().map((entry) => ({
+    pillar: "archive",
+    title: entry.title,
+    path: `/archive/${entry.slug}`,
+    tags: entry.tech_stack,
+    display: String(entry.year),
+    sortKey: new Date(`${entry.year}-01-01`).getTime() || 0,
+  }));
+
+  const playbook: TaggedEntry[] = getAllPlaybookEntries().map((entry) => ({
+    pillar: "playbook",
+    title: entry.title,
+    path: entry.path,
+    tags: entry.tags,
+    display: entry.last_updated,
+    sortKey: new Date(entry.last_updated).getTime() || 0,
+  }));
+
+  return [...logbook, ...archive, ...playbook];
+}
+
+/**
+ * Every unique tag across all three pillars, de-duplicated by slug (so
+ * "TypeScript" and "typescript" collapse) and sorted alphabetically.
+ */
+export function getAllUniqueTags(): string[] {
+  const bySlug = new Map<string, string>();
+  for (const entry of getTaggedEntries()) {
+    for (const tag of entry.tags) {
+      const slug = tagToSlug(tag);
+      if (slug && !bySlug.has(slug)) bySlug.set(slug, tag);
+    }
+  }
+  return Array.from(bySlug.values()).sort((a, b) =>
+    a.toLowerCase().localeCompare(b.toLowerCase())
+  );
+}
+
+/** Every entry (newest first) whose tags include the given tag slug. */
+export function getEntriesByTagSlug(tagSlug: string): TaggedEntry[] {
+  return getTaggedEntries()
+    .filter((entry) => entry.tags.some((tag) => tagToSlug(tag) === tagSlug))
+    .sort((a, b) => b.sortKey - a.sortKey);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Bi-directional (wiki-style) links                                          */
+/* -------------------------------------------------------------------------- */
+
+/** A resolvable reference to a single page. */
+export interface SlugRef {
+  slug: string;
+  title: string;
+  path: string;
+}
+
+const WIKILINK_RE = /\[\[([^\]\n]+)\]\]/g;
+
+/** Normalize a wiki-link target to a comparable key. */
+function normalizeTarget(target: string): string {
+  return target.trim().toLowerCase();
+}
+
+/**
+ * Every page across the three pillars as `{ slug, title, path, content }`.
+ * Playbook entries are keyed by their final path segment so `[[ai-workflows]]`
+ * resolves regardless of nesting depth.
+ */
+function getAllFullEntries(): (SlugRef & { content: string })[] {
+  const out: (SlugRef & { content: string })[] = [];
+
+  for (const entry of getAllLogbookEntries()) {
+    const full = getLogbookEntry(entry.slug);
+    out.push({
+      slug: entry.slug,
+      title: entry.title,
+      path: `/logbook/${entry.slug}`,
+      content: full?.content ?? "",
+    });
+  }
+  for (const entry of getAllArchiveEntries()) {
+    const full = getArchiveEntry(entry.slug);
+    out.push({
+      slug: entry.slug,
+      title: entry.title,
+      path: `/archive/${entry.slug}`,
+      content: full?.content ?? "",
+    });
+  }
+  for (const entry of getAllPlaybookEntries()) {
+    const full = getPlaybookEntry(entry.slug);
+    out.push({
+      slug: entry.slug[entry.slug.length - 1],
+      title: entry.title,
+      path: entry.path,
+      content: full?.content ?? "",
+    });
+  }
+
+  return out;
+}
+
+/** Resolve a slug → page reference for wiki-link resolution. First wins. */
+export function getSlugIndex(): Record<string, SlugRef> {
+  const index: Record<string, SlugRef> = {};
+  for (const { slug, title, path } of getAllFullEntries()) {
+    const key = normalizeTarget(slug);
+    if (!index[key]) index[key] = { slug, title, path };
+  }
+  return index;
+}
+
+/**
+ * Build the master backlink graph: for each target slug, the list of pages
+ * that link to it via `[[target]]`. Computed entirely on the server.
+ */
+export function generateBacklinkGraph(): Record<string, SlugRef[]> {
+  const graph: Record<string, SlugRef[]> = {};
+
+  for (const source of getAllFullEntries()) {
+    const seen = new Set<string>();
+    for (const match of Array.from(source.content.matchAll(WIKILINK_RE))) {
+      const target = normalizeTarget(match[1]);
+      if (target === normalizeTarget(source.slug)) continue; // ignore self-links
+      if (seen.has(target)) continue;
+      seen.add(target);
+      (graph[target] ??= []).push({
+        slug: source.slug,
+        title: source.title,
+        path: source.path,
+      });
+    }
+  }
+
+  return graph;
+}
+
+/** Incoming links for a single page slug (empty array if none). */
+export function getBacklinks(slug: string): SlugRef[] {
+  return generateBacklinkGraph()[normalizeTarget(slug)] ?? [];
+}
+
+/**
+ * Rewrite `[[target]]` syntax into `<WikiLink target="…" />` JSX, skipping
+ * fenced and inline code so command samples are left untouched.
+ */
+export function injectWikiLinks(content: string): string {
+  return content
+    .split(/(```[\s\S]*?```)/g)
+    .map((segment, fenceIndex) => {
+      if (fenceIndex % 2 === 1) return segment; // fenced code block
+      return segment
+        .split(/(`[^`]*`)/g)
+        .map((part, codeIndex) => {
+          if (codeIndex % 2 === 1) return part; // inline code
+          return part.replace(WIKILINK_RE, (_match, target: string) => {
+            const escaped = target.trim().replace(/"/g, "&quot;");
+            return `<WikiLink target="${escaped}" />`;
+          });
+        })
+        .join("");
+    })
+    .join("");
 }

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import Header from "@/components/Header";
@@ -21,6 +21,16 @@ export const metadata: Metadata = {
     template: "%s",
   },
   description: "A monochrome logbook, archive, and playbook for builders.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black",
+    title: "Codex",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#000000",
 };
 
 export default function RootLayout({

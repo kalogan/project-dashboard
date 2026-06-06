@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getAllLogbookEntries } from "@/lib/mdx";
+import { getAllLogbookEntries, tagToSlug } from "@/lib/mdx";
 
 export const metadata = {
   title: "Logbook — Developer Codex",
@@ -40,23 +40,35 @@ export default function LogbookPage() {
           </p>
         ) : (
           entries.map((entry) => (
-            <Link
+            // The row link uses `display: contents` so its cells flow into the
+            // shared grid, while the Tags cell sits outside it as separate tag
+            // links — avoiding invalid nested anchors.
+            <div
               key={entry.slug}
-              href={`/logbook/${entry.slug}`}
               className={`${COLUMNS} items-baseline border-b border-gray-800 px-2 py-4 transition-colors hover:bg-gray-900`}
             >
-              <time
-                dateTime={entry.date}
-                className="font-mono text-sm tabular-nums text-gray-400"
-              >
-                {entry.date}
-              </time>
-              <span className="text-sm text-gray-400">{entry.location}</span>
-              <span className="font-semibold text-white">{entry.title}</span>
-              <span className="hidden font-mono text-xs text-gray-400 md:block">
-                {entry.tags.join(", ")}
+              <Link href={`/logbook/${entry.slug}`} className="contents">
+                <time
+                  dateTime={entry.date}
+                  className="font-mono text-sm tabular-nums text-gray-400"
+                >
+                  {entry.date}
+                </time>
+                <span className="text-sm text-gray-400">{entry.location}</span>
+                <span className="font-semibold text-white">{entry.title}</span>
+              </Link>
+              <span className="hidden flex-wrap gap-x-2 font-mono text-xs text-gray-400 md:flex">
+                {entry.tags.map((tag) => (
+                  <Link
+                    key={tag}
+                    href={`/tags/${tagToSlug(tag)}`}
+                    className="transition-opacity duration-150 hover:text-white"
+                  >
+                    {tag}
+                  </Link>
+                ))}
               </span>
-            </Link>
+            </div>
           ))
         )}
       </div>

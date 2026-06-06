@@ -4,6 +4,8 @@ import PromptVault from "@/components/PromptVault";
 import SpecSheet from "@/components/mdx/SpecSheet";
 import TerminalBlock from "@/components/mdx/TerminalBlock";
 import MechanicFlow from "@/components/mdx/MechanicFlow";
+import Changelog from "@/components/mdx/Changelog";
+import WikiLink from "@/components/mdx/WikiLink";
 
 /**
  * The Developer Codex MDX component map.
@@ -119,4 +121,6 @@ export const mdxComponents = {
   SpecSheet,
   TerminalBlock,
   MechanicFlow,
+  Changelog,
+  WikiLink,
 };

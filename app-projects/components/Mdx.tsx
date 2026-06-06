@@ -1,6 +1,7 @@
 import { evaluate } from "@mdx-js/mdx";
 import { Fragment, jsx, jsxs } from "react/jsx-runtime";
 import { mdxComponents } from "@/components/MdxProvider";
+import { injectWikiLinks } from "@/lib/mdx";
 
 /**
  * Server-side MDX renderer.
@@ -11,6 +12,11 @@ import { mdxComponents } from "@/components/MdxProvider";
  * authored locally and fully trusted, so evaluating it is safe.
  */
 export default async function Mdx({ source }: { source: string }) {
-  const { default: Content } = await evaluate(source, { Fragment, jsx, jsxs });
+  const processed = injectWikiLinks(source);
+  const { default: Content } = await evaluate(processed, {
+    Fragment,
+    jsx,
+    jsxs,
+  });
   return <Content components={mdxComponents} />;
 }
