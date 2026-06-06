@@ -103,6 +103,12 @@ export interface PlaybookEntry {
 /** The three content pillars. */
 export type Pillar = "logbook" | "archive" | "playbook";
 
+/** A single turn in the "Grill Me" editor chat (Gemini chat shape). */
+export interface ChatTurn {
+  role: "user" | "model";
+  text: string;
+}
+
 /**
  * A normalized, cross-pillar entry used by the global tag taxonomy and the
  * activity telemetry — a common shape regardless of the source schema.

@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { saveMdxFile } from "@/app/actions/saveMdx";
 import { uploadImage } from "@/app/actions/uploadMedia";
+import Interrogator from "@/components/editor/Interrogator";
 
 /**
  * The local-first authoring form.
@@ -95,8 +96,15 @@ export default function EditorForm() {
   }
 
   return (
-    <form action={saveMdxFile} className="space-y-6">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+    <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+      {/* Left column — the Interrogator. */}
+      <aside className="lg:sticky lg:top-8 lg:col-span-1 lg:h-[calc(100vh-6rem)]">
+        <Interrogator onInsert={insertAtCursor} />
+      </aside>
+
+      {/* Right column — the Canvas. */}
+      <form action={saveMdxFile} className="space-y-6 lg:col-span-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <label className="block">
           <span className="mb-1 block font-mono text-xs uppercase tracking-widest text-gray-400">
             Pillar
@@ -168,12 +176,13 @@ export default function EditorForm() {
         </div>
       </div>
 
-      <button
-        type="submit"
-        className="rounded-none border border-white bg-white px-4 py-2 font-mono text-xs font-semibold uppercase tracking-widest text-black transition-opacity duration-150 hover:opacity-80"
-      >
-        Save entry
-      </button>
-    </form>
+        <button
+          type="submit"
+          className="rounded-none border border-white bg-white px-4 py-2 font-mono text-xs font-semibold uppercase tracking-widest text-black transition-opacity duration-150 hover:opacity-80"
+        >
+          Save entry
+        </button>
+      </form>
+    </div>
   );
 }
