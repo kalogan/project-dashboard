@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import Header from "@/components/Header";
+import CommandPalette from "@/components/CommandPalette";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -15,7 +16,10 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Developer Codex",
+  title: {
+    default: "Developer Codex",
+    template: "%s",
+  },
   description: "A monochrome logbook, archive, and playbook for builders.",
 };
 
@@ -31,6 +35,7 @@ export default function RootLayout({
       >
         <Header />
         {children}
+        <CommandPalette />
       </body>
     </html>
   );

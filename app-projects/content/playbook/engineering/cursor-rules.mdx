@@ -1,0 +1,25 @@
+---
+title: "Cursor Rules"
+category: "Engineering"
+last_updated: "2026-05-30"
+status: "evergreen"
+---
+
+The standing rules I load into every AI-assisted editing session. These are not
+suggestions — they are the contract the agent operates under.
+
+## Core Directives
+
+- Match the surrounding code's style; do not introduce new conventions.
+- Prefer the smallest change that fully solves the problem.
+- Never invent APIs — verify against the actual source before calling.
+
+## Review Posture
+
+Every generated diff is treated as a junior engineer's PR: read it in full,
+question anything clever, and reject net-new dependencies unless justified.
+
+## Guardrails
+
+The agent must stop and ask before deleting files, rewriting public interfaces,
+or touching anything outside the stated task.

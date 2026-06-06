@@ -22,7 +22,7 @@ export default function PromptVault({
     <details className="group my-6 border border-gray-800 bg-gray-900 open:border-gray-600">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-3 font-mono text-xs uppercase tracking-widest text-gray-300 transition-colors hover:text-white">
         <span>
-          <span className="text-gray-500">Prompt Vault — </span>
+          <span className="text-gray-400">Prompt Vault — </span>
           {title}
         </span>
         {/* Rotating chevron drawn with a single character; no imagery. */}

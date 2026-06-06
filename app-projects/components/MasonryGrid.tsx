@@ -22,7 +22,7 @@ export default function MasonryGrid({
 }) {
   if (entries.length === 0) {
     return (
-      <p className="border-t border-gray-800 py-12 text-center font-normal text-gray-500">
+      <p className="border-t border-gray-800 py-12 text-center font-normal text-gray-400">
         No projects to show.
       </p>
     );

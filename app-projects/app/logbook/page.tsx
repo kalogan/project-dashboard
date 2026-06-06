@@ -25,7 +25,7 @@ export default function LogbookPage() {
       <div className="mt-10 border-t border-gray-800">
         {/* Header row */}
         <div
-          className={`${COLUMNS} border-b border-gray-800 px-2 py-3 text-xs font-semibold uppercase tracking-widest text-gray-500`}
+          className={`${COLUMNS} border-b border-gray-800 px-2 py-3 text-xs font-semibold uppercase tracking-widest text-gray-400`}
         >
           <span>Date</span>
           <span>Location</span>
@@ -35,7 +35,7 @@ export default function LogbookPage() {
 
         {/* Entry rows — each row is clickable and routes to the detail page. */}
         {entries.length === 0 ? (
-          <p className="px-2 py-6 font-normal text-gray-500">
+          <p className="px-2 py-6 font-normal text-gray-400">
             No entries yet.
           </p>
         ) : (
@@ -53,7 +53,7 @@ export default function LogbookPage() {
               </time>
               <span className="text-sm text-gray-400">{entry.location}</span>
               <span className="font-semibold text-white">{entry.title}</span>
-              <span className="hidden font-mono text-xs text-gray-500 md:block">
+              <span className="hidden font-mono text-xs text-gray-400 md:block">
                 {entry.tags.join(", ")}
               </span>
             </Link>

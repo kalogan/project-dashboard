@@ -38,7 +38,7 @@ export default function ProjectCard({ entry }: { entry: ArchiveEntryMeta }) {
           <h3 className="font-semibold tracking-tight text-white">
             {entry.title}
           </h3>
-          <span className="font-mono text-sm tabular-nums text-gray-500">
+          <span className="font-mono text-sm tabular-nums text-gray-400">
             {entry.year}
           </span>
         </div>

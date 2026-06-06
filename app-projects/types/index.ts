@@ -77,3 +77,52 @@ export interface ArchiveEntryMeta extends ArchiveEntry {
 export interface ArchiveEntryFull extends ArchiveEntryMeta {
   content: string;
 }
+
+/* -------------------------------------------------------------------------- */
+/* The Playbook                                                               */
+/* -------------------------------------------------------------------------- */
+
+/** Lifecycle of a Playbook page — `evergreen` is currently-true canon. */
+export type PlaybookStatus = "draft" | "evergreen";
+
+/**
+ * Frontmatter contract for a single Playbook entry.
+ *
+ * The Playbook is a living wiki: it highlights what is currently true, not
+ * when something happened — hence `last_updated` rather than a creation date.
+ */
+export interface PlaybookEntry {
+  title: string;
+  category: string;
+  last_updated: string;
+  status: PlaybookStatus;
+}
+
+/**
+ * A parsed Playbook entry: validated frontmatter plus routing metadata derived
+ * from its (possibly nested) path under `content/playbook`.
+ *
+ * - `slug` — path segments, e.g. `["engineering", "cursor-rules"]`.
+ * - `path` — the resolved URL, e.g. `/playbook/engineering/cursor-rules`.
+ */
+export interface PlaybookEntryMeta extends PlaybookEntry {
+  slug: string[];
+  path: string;
+}
+
+/**
+ * A fully loaded Playbook entry — metadata plus the raw MDX body for the
+ * dynamic `/playbook/[...slug]` route.
+ */
+export interface PlaybookEntryFull extends PlaybookEntryMeta {
+  content: string;
+}
+
+/**
+ * A grouped branch of the Playbook navigation tree — one category and the
+ * entries that belong to it, used to render the hierarchical sidebar.
+ */
+export interface PlaybookCategory {
+  category: string;
+  entries: PlaybookEntryMeta[];
+}

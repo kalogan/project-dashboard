@@ -29,7 +29,7 @@ export default function LogbookEntryPage({ params }: PageProps) {
     <main className="mx-auto max-w-3xl px-6 py-16">
       <Link
         href="/logbook"
-        className="font-mono text-sm text-gray-500 transition-colors hover:text-white"
+        className="font-mono text-sm text-gray-400 transition-colors hover:text-white"
       >
         ← Logbook
       </Link>
@@ -47,7 +47,7 @@ export default function LogbookEntryPage({ params }: PageProps) {
           {entry.tags.length > 0 && (
             <>
               <span aria-hidden>·</span>
-              <span className="text-gray-500">{entry.tags.join(", ")}</span>
+              <span className="text-gray-400">{entry.tags.join(", ")}</span>
             </>
           )}
         </div>

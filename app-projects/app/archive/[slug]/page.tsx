@@ -44,7 +44,7 @@ export default function ArchiveEntryPage({ params }: PageProps) {
     <main className="mx-auto max-w-prose px-6 py-16">
       <Link
         href="/archive"
-        className="font-mono text-sm text-gray-500 transition-colors hover:text-white"
+        className="font-mono text-sm text-gray-400 transition-colors hover:text-white"
       >
         ← Back to Archive
       </Link>
@@ -62,7 +62,7 @@ export default function ArchiveEntryPage({ params }: PageProps) {
             <>
               <span aria-hidden>·</span>
               <span>
-                <span className="text-gray-500">MVP </span>
+                <span className="text-gray-400">MVP </span>
                 {entry.time_to_mvp}
               </span>
             </>

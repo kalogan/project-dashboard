@@ -42,7 +42,7 @@ export default function ArchiveExplorer({
           >
             View Full 14-Year Archive
           </label>
-          <p className="mt-1 font-normal text-sm text-gray-500">
+          <p className="mt-1 font-normal text-sm text-gray-400">
             {showFullArchive
               ? "Showing every project, legacy history included."
               : `Showcase view — ${hiddenCount} legacy ${
@@ -56,6 +56,7 @@ export default function ArchiveExplorer({
           type="button"
           role="switch"
           aria-checked={showFullArchive}
+          aria-label="View full 14-year archive"
           onClick={() => setShowFullArchive((v) => !v)}
           className={`relative inline-flex h-8 w-14 flex-shrink-0 items-center border transition-colors ${
             showFullArchive
