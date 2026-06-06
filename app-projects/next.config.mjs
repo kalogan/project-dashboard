@@ -10,6 +10,15 @@ const nextConfig = {
       "ffmpeg-static",
       "sharp",
     ],
+    // The editor/ingestion actions (and the ~80MB ffmpeg binary) are dev-only
+    // and 404'd in production, so keep the binary out of the serverless
+    // function bundles to stay well under Vercel's size limit.
+    outputFileTracingExcludes: {
+      "*": [
+        "node_modules/ffmpeg-static/**",
+        "node_modules/fluent-ffmpeg/**",
+      ],
+    },
   },
 };
 

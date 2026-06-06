@@ -51,6 +51,26 @@ GEMINI_API_KEY=your_key_here
 
 It is only used by the dev-only editor; the rest of the app runs without it.
 
+## Deploy to Vercel
+
+The app lives in the `app-projects/` subdirectory, so set the **Root Directory**
+accordingly when importing.
+
+1. Push the repo to GitHub (already done).
+2. On [vercel.com](https://vercel.com/new), **Add New → Project** and import the repo.
+3. Set **Root Directory** to `app-projects`. Framework (Next.js), build command
+   (`next build`), and output are auto-detected — leave them default.
+4. Environment variables: none required. (`GEMINI_API_KEY` is optional and only
+   used by the dev-only editor, which is 404'd in production anyway.)
+5. **Deploy.**
+
+What you'll see in production (by design — the Vault Guardrail):
+
+- Public pillars render: dashboard, Archive, Playbook, tags, full-text search,
+  and the three themes on `/settings`.
+- `/editor`, the bulk inbox, and CMS telemetry are **404** (local-only tools).
+- Any entry marked `visibility: private` or `draft` is filtered out.
+
 ## Authoring content
 
 Each pillar reads `.mdx` files from `content/<pillar>/`. Frontmatter contracts:
