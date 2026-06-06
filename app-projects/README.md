@@ -1,36 +1,88 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Developer Codex
 
-## Getting Started
+A strictly monochrome, offline-capable "second brain" for builders — a personal
+**logbook**, project **archive**, and methodology **playbook**, all driven by
+local MDX files. Built with the Next.js App Router, TypeScript, and Tailwind.
 
-First, run the development server:
+The entire design system is grayscale by rule: hierarchy comes from True Black,
+True White, a neutral gray spectrum, borders, spacing, and typographic weight —
+never color.
+
+## The three pillars
+
+| Pillar | Route | Purpose |
+| --- | --- | --- |
+| **Logbook** | `/logbook` | A chronological ledger of entries (private timeline; `noindex`). |
+| **Archive** | `/archive` | A tiered project showcase (`portfolio` / `demo` / `archive`) in a masonry grid, with the deep legacy history one toggle away. |
+| **Playbook** | `/playbook` | A hierarchical, docs-style wiki of methodologies and specs. |
+
+## Features
+
+- **Command Center dashboard** (`/`) — activity heatmap + latest shipped project, active systems, and recent logs.
+- **Global search** — `Cmd/Ctrl+K` fuzzy command palette (fuse.js) over a static, privacy-filtered search index.
+- **Cross-pillar tags** — `/tags/[tag]` aggregates everything sharing a tag across all three pillars.
+- **Bi-directional links** — Obsidian-style `[[wiki-links]]` with a server-side backlink graph; unresolved links degrade to visible stubs.
+- **Bespoke MDX components** — `<SpecSheet>`, `<TerminalBlock>`, `<MechanicFlow>`, `<Changelog>`, `<PromptVault>`, `<WikiLink>`, available in any `.mdx` without imports.
+- **Local-first CMS** (`/editor`, dev-only) — author entries with generated frontmatter, paste/drop image upload (auto-compressed to `.webp` via `sharp`), and a "Grill Me" Gemini assistant.
+- **Installable PWA** — offline-resilient with aggressive text caching and capped media caching.
+
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cd app-projects
+npm install
+npm run dev          # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Other scripts: `npm run build`, `npm run start`, `npm run lint`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Optional: the "Grill Me" AI assistant
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The local editor includes an optional Gemini-powered assistant. To enable it:
 
-## Learn More
+```bash
+cp .env.example .env.local
+# then add your key from https://aistudio.google.com/
+```
 
-To learn more about Next.js, take a look at the following resources:
+```
+GEMINI_API_KEY=your_key_here
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+It is only used by the dev-only editor; the rest of the app runs without it.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Authoring content
 
-## Deploy on Vercel
+Each pillar reads `.mdx` files from `content/<pillar>/`. Frontmatter contracts:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Logbook** — `title`, `date`, `location`, `tags[]`, `summary`
+- **Archive** — `title`, `year`, `tier`, `category`, `visibility`, `hero_media`, `tech_stack[]`
+- **Playbook** — `title`, `category`, `last_updated`, `status`, `tags[]`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Run locally and visit **`/editor`** to author entries through the UI instead of
+hand-writing frontmatter. The editor and image pipeline write to the local
+filesystem and are automatically disabled in production.
+
+## Project structure
+
+```
+app-projects/
+├── app/            # App Router routes, API route, server actions, editor
+├── components/     # UI + bespoke MDX components (components/mdx)
+├── content/        # logbook / archive / playbook MDX source
+├── lib/            # MDX parsing, tag taxonomy, backlink graph, telemetry
+├── public/         # static assets, media uploads, PWA manifest + icons
+└── types/          # shared frontmatter and domain types
+```
+
+## Security & deployment notes
+
+- The **Logbook is never indexed** by search and excludes itself from the public search index; `visibility: private` Archive entries are excluded too.
+- Filesystem-writing actions (content + media) **throw in production** so a read-only host (e.g. Vercel) never crashes.
+- The PWA service worker (`public/sw.js`, `workbox-*`, `swe-worker-*`) is generated at build time and gitignored.
+
+## Tech stack
+
+Next.js 14 (App Router) · React 18 · TypeScript · Tailwind CSS · MDX
+(`@mdx-js/mdx`, `next-mdx-remote`, `gray-matter`) · `fuse.js` · `sharp` ·
+`@ducanh2912/next-pwa` · `@google/generative-ai`.
