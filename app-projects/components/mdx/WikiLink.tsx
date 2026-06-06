@@ -16,7 +16,10 @@ export default function WikiLink({ target }: { target: string }) {
     return (
       <span
         title={`Unwritten: ${target}`}
-        className="border-b border-dotted border-gray-700 text-gray-600"
+        // WCAG: gray-600 on black fails AA (~2.6:1); gray-400 passes (8.3:1).
+        // The dotted gray-700 underline + the absence of a link keeps it
+        // visually distinct as an unwritten stub.
+        className="border-b border-dotted border-gray-700 italic text-gray-400"
       >
         {target}
       </span>

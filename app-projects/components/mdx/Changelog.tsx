@@ -31,7 +31,7 @@ export default function Changelog({
         </code>
         <time
           dateTime={date}
-          className="font-mono text-sm tabular-nums text-gray-500"
+          className="font-mono text-sm tabular-nums text-gray-400"
         >
           {date}
         </time>

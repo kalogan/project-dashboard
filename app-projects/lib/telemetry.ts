@@ -1,3 +1,4 @@
+import { cache } from "react";
 import {
   getAllLogbookEntries,
   getAllArchiveEntries,
@@ -13,7 +14,7 @@ import {
  */
 export type ActivityMap = Record<string, number>;
 
-export function getActivityData(): ActivityMap {
+export const getActivityData = cache((): ActivityMap => {
   const dates: string[] = [];
 
   for (const entry of getAllLogbookEntries()) {
@@ -31,4 +32,4 @@ export function getActivityData(): ActivityMap {
     if (/^\d{4}-\d{2}-\d{2}$/.test(day)) freq[day] = (freq[day] ?? 0) + 1;
     return freq;
   }, {});
-}
+});

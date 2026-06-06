@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { cache } from "react";
 import matter from "gray-matter";
 import { tagToSlug } from "@/lib/slug";
 import type {
@@ -43,7 +44,7 @@ function toLogbookEntry(data: Record<string, unknown>): LogbookEntry {
  * Read and parse every `.mdx` file in `content/logbook`, returning metadata
  * sorted by date, newest first.
  */
-export function getAllLogbookEntries(): LogbookEntryMeta[] {
+export const getAllLogbookEntries = cache((): LogbookEntryMeta[] => {
   if (!fs.existsSync(LOGBOOK_DIR)) return [];
 
   const entries = fs
@@ -59,7 +60,7 @@ export function getAllLogbookEntries(): LogbookEntryMeta[] {
   return entries.sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
-}
+});
 
 /**
  * Load a single Logbook entry (metadata + raw MDX body) by slug, or return
@@ -116,7 +117,7 @@ function toArchiveEntry(data: Record<string, unknown>): ArchiveEntry {
  * Read and parse every `.mdx` file in `content/archive`, returning metadata
  * sorted by `year`, newest first.
  */
-export function getAllArchiveEntries(): ArchiveEntryMeta[] {
+export const getAllArchiveEntries = cache((): ArchiveEntryMeta[] => {
   if (!fs.existsSync(ARCHIVE_DIR)) return [];
 
   const entries = fs
@@ -130,7 +131,7 @@ export function getAllArchiveEntries(): ArchiveEntryMeta[] {
     });
 
   return entries.sort((a, b) => b.year - a.year);
-}
+});
 
 /**
  * Load a single Archive entry (metadata + raw MDX body) by slug, or return
@@ -191,7 +192,7 @@ function walkMdx(dir: string, base: string = dir): string[] {
  * subdirectories), returning metadata with derived slug/path. Sorted by
  * category, then title, for stable hierarchical navigation.
  */
-export function getAllPlaybookEntries(): PlaybookEntryMeta[] {
+export const getAllPlaybookEntries = cache((): PlaybookEntryMeta[] => {
   return walkMdx(PLAYBOOK_DIR)
     .map((relPath) => {
       const slug = relPath.replace(/\.mdx$/, "").split("/");
@@ -207,7 +208,7 @@ export function getAllPlaybookEntries(): PlaybookEntryMeta[] {
       (a, b) =>
         a.category.localeCompare(b.category) || a.title.localeCompare(b.title)
     );
-}
+});
 
 /**
  * Build the hierarchical navigation tree: entries grouped by their `category`
@@ -259,7 +260,7 @@ export { tagToSlug };
  * Playbook expose their `tags`. Each entry carries a `sortKey` for descending
  * chronological ordering.
  */
-export function getTaggedEntries(): TaggedEntry[] {
+export const getTaggedEntries = cache((): TaggedEntry[] => {
   const logbook: TaggedEntry[] = getAllLogbookEntries().map((entry) => ({
     pillar: "logbook",
     title: entry.title,
@@ -288,7 +289,7 @@ export function getTaggedEntries(): TaggedEntry[] {
   }));
 
   return [...logbook, ...archive, ...playbook];
-}
+});
 
 /**
  * Every unique tag across all three pillars, de-duplicated by slug (so
@@ -337,7 +338,7 @@ function normalizeTarget(target: string): string {
  * Playbook entries are keyed by their final path segment so `[[ai-workflows]]`
  * resolves regardless of nesting depth.
  */
-function getAllFullEntries(): (SlugRef & { content: string })[] {
+const getAllFullEntries = cache((): (SlugRef & { content: string })[] => {
   const out: (SlugRef & { content: string })[] = [];
 
   for (const entry of getAllLogbookEntries()) {
@@ -369,23 +370,23 @@ function getAllFullEntries(): (SlugRef & { content: string })[] {
   }
 
   return out;
-}
+});
 
 /** Resolve a slug → page reference for wiki-link resolution. First wins. */
-export function getSlugIndex(): Record<string, SlugRef> {
+export const getSlugIndex = cache((): Record<string, SlugRef> => {
   const index: Record<string, SlugRef> = {};
   for (const { slug, title, path } of getAllFullEntries()) {
     const key = normalizeTarget(slug);
     if (!index[key]) index[key] = { slug, title, path };
   }
   return index;
-}
+});
 
 /**
  * Build the master backlink graph: for each target slug, the list of pages
  * that link to it via `[[target]]`. Computed entirely on the server.
  */
-export function generateBacklinkGraph(): Record<string, SlugRef[]> {
+export const generateBacklinkGraph = cache((): Record<string, SlugRef[]> => {
   const graph: Record<string, SlugRef[]> = {};
 
   for (const source of getAllFullEntries()) {
@@ -404,7 +405,7 @@ export function generateBacklinkGraph(): Record<string, SlugRef[]> {
   }
 
   return graph;
-}
+});
 
 /** Incoming links for a single page slug (empty array if none). */
 export function getBacklinks(slug: string): SlugRef[] {

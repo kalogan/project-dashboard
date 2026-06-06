@@ -176,6 +176,12 @@ export default function CommandPalette() {
             onKeyDown={onInputKeyDown}
             placeholder="Search the codex…"
             aria-label="Search query"
+            role="combobox"
+            aria-expanded={results.length > 0}
+            aria-controls="cmdk-listbox"
+            aria-activedescendant={
+              results.length > 0 ? `cmdk-option-${activeIndex}` : undefined
+            }
             className="w-full bg-transparent py-4 font-normal text-white placeholder:text-gray-400 focus:outline-none"
           />
           <button
@@ -188,14 +194,19 @@ export default function CommandPalette() {
           </button>
         </div>
 
-        <div className="max-h-[50vh] overflow-y-auto">
+        <div
+          id="cmdk-listbox"
+          role="listbox"
+          aria-label="Search results"
+          className="max-h-[50vh] overflow-y-auto"
+        >
           {results.length === 0 ? (
             <p className="px-4 py-8 text-center font-normal text-gray-400">
               {index === null ? "Loading index…" : "No matches."}
             </p>
           ) : (
             grouped.map((group) => (
-              <div key={group.pillar} className="py-2">
+              <div key={group.pillar} className="py-2" role="group">
                 <p className="px-4 py-1 font-mono text-[0.65rem] uppercase tracking-widest text-gray-400">
                   From {group.pillar}
                 </p>
@@ -208,6 +219,10 @@ export default function CommandPalette() {
                       <li key={record.url_path}>
                         <button
                           type="button"
+                          id={`cmdk-option-${flatIndex}`}
+                          role="option"
+                          aria-selected={isActive}
+                          tabIndex={-1}
                           onClick={() => go(record)}
                           onMouseMove={() => setActiveIndex(flatIndex)}
                           className={`block w-full px-4 py-2 text-left transition-opacity duration-150 ${

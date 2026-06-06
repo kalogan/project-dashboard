@@ -34,6 +34,9 @@ export async function uploadImage(formData: FormData): Promise<string> {
   if (!(file instanceof File) || file.size === 0) {
     throw new Error("No image provided.");
   }
+  if (!file.type.startsWith("image/")) {
+    throw new Error(`Unsupported file type: ${file.type || "unknown"}.`);
+  }
 
   const inputBuffer = Buffer.from(await file.arrayBuffer());
 
