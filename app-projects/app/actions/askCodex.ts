@@ -1,6 +1,8 @@
 "use server";
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { getRateWindow, recordRequest } from "@/lib/rateLimit";
+import { RATE_LIMIT_TOKEN } from "@/lib/constants";
 import type { ChatTurn } from "@/types";
 
 /**
@@ -31,6 +33,12 @@ BESPOKE COMPONENTS — prefer these over plain markdown where they fit. They are
 - <PromptVault title="...">collapsible notes</PromptVault> — lessons learned / decisions.
 - [[other-entry-slug]] — a bi-directional wiki link to another codex entry.
 
+VISIBILITY (deployment privacy)
+- Logbook entries are ALWAYS private (personal timeline) — never mark a Logbook entry public.
+- Archive case studies are public by default unless the user says otherwise.
+- Playbook entries are public unless the user marks them a draft.
+- If you ever emit frontmatter, set the \`visibility\` field accordingly ("public" | "private" | "draft"); when unsure, choose "private".
+
 RULES
 - Use standard markdown headings (##), prose, lists, and inline code for everything else.
 - Keep prose tight. Favour the bespoke components for structured data instead of loose bullet lists.
@@ -46,6 +54,12 @@ export async function askCodex(
       "GEMINI_API_KEY is not set. Add it to app-projects/.env.local and restart the dev server."
     );
   }
+
+  // Pre-emptively degrade before tripping the free-tier ceiling.
+  if (getRateWindow().remaining <= 0) {
+    throw new Error(RATE_LIMIT_TOKEN);
+  }
+  recordRequest();
 
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({

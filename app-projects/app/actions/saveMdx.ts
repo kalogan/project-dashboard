@@ -5,6 +5,7 @@ import path from "node:path";
 import matter from "gray-matter";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { CONTENT_ROOT } from "@/lib/paths";
 
 /**
  * Local-first content authoring.
@@ -60,17 +61,20 @@ export async function saveMdxFile(formData: FormData) {
   // against the existing typed readers.
   const frontmatter: Record<string, unknown> = { title, tags };
   if (pillar === "logbook") {
+    // The Logbook is the private timeline — never public.
+    frontmatter.visibility = "private";
     frontmatter.date = today;
     frontmatter.location = "";
     frontmatter.summary = "";
   } else if (pillar === "archive") {
+    frontmatter.visibility = "public";
     frontmatter.year = new Date().getFullYear();
     frontmatter.tier = "demo";
     frontmatter.category = "";
-    frontmatter.visibility = "private";
     frontmatter.hero_media = "";
     frontmatter.tech_stack = tags;
   } else {
+    frontmatter.visibility = "public";
     frontmatter.category = "Uncategorized";
     frontmatter.last_updated = today;
     frontmatter.status = "draft";
@@ -78,7 +82,7 @@ export async function saveMdxFile(formData: FormData) {
 
   const fileContents = matter.stringify(`\n${body.trim()}\n`, frontmatter);
 
-  const dir = path.join(process.cwd(), "content", pillar);
+  const dir = path.join(CONTENT_ROOT, pillar);
   await fs.promises.mkdir(dir, { recursive: true });
   await fs.promises.writeFile(path.join(dir, `${slug}.mdx`), fileContents, "utf8");
 

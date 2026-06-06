@@ -1,10 +1,16 @@
 import EditorForm from "@/components/editor/EditorForm";
+import TelemetryBar from "@/components/editor/TelemetryBar";
+import { readInbox } from "@/lib/inbox";
 
 export const metadata = {
   title: "Editor — Developer Codex",
   // Hidden authoring surface — never index it.
   robots: { index: false, follow: false },
 };
+
+// Never statically cache the editor: the triage queue reflects live `_inbox`
+// contents, and the whole surface is dev-only anyway.
+export const dynamic = "force-dynamic";
 
 /**
  * Local-first authoring dashboard. The form writes `.mdx` files straight to
@@ -27,19 +33,23 @@ export default function EditorPage() {
     );
   }
 
+  const inboxItems = readInbox();
+
   return (
-    <main className="mx-auto max-w-4xl px-6 py-16">
+    <main className="mx-auto max-w-5xl px-6 py-16 pb-16">
       <h1 className="text-3xl font-extrabold tracking-tight text-white">
         Editor
       </h1>
       <p className="mt-2 font-normal text-gray-400">
-        Author a new entry. Frontmatter is generated for you; the file lands in
-        the chosen pillar and you are taken straight to the rendered page.
+        Compose an entry directly, or bulk-drop media into the Inbox and triage
+        it into entries. Frontmatter is generated for you.
       </p>
 
       <div className="mt-10">
-        <EditorForm />
+        <EditorForm inboxItems={inboxItems} />
       </div>
+
+      <TelemetryBar />
     </main>
   );
 }

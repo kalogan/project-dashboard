@@ -3,6 +3,7 @@ import path from "node:path";
 import { cache } from "react";
 import matter from "gray-matter";
 import { tagToSlug } from "@/lib/slug";
+import { CONTENT_ROOT } from "@/lib/paths";
 import type {
   LogbookEntry,
   LogbookEntryMeta,
@@ -11,13 +12,14 @@ import type {
   ArchiveEntryMeta,
   ArchiveEntryFull,
   ArchiveTier,
-  ArchiveVisibility,
+  Visibility,
   PlaybookEntry,
   PlaybookEntryMeta,
   PlaybookEntryFull,
   PlaybookCategory,
   PlaybookStatus,
   TaggedEntry,
+  SearchRecord,
 } from "@/types";
 
 /**
@@ -27,7 +29,25 @@ import type {
  * gray-matter, and exposes typed accessors. This module touches `node:fs` and
  * is therefore Server-Component / build-time only.
  */
-const LOGBOOK_DIR = path.join(process.cwd(), "content", "logbook");
+const LOGBOOK_DIR = path.join(CONTENT_ROOT, "logbook");
+
+// On the production (deployed) build, only `public` entries are ever read —
+// private/draft files never reach the client bundle, search index, or graph.
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
+
+/** Narrow a value to a Visibility, defaulting to `private` (default-deny). */
+function toVisibility(value: unknown): Visibility {
+  return value === "public" || value === "draft" ? value : "private";
+}
+
+/** In production, keep only public entries; in dev, keep everything. */
+function visibilityGate<T extends { visibility: Visibility }>(
+  entries: T[]
+): T[] {
+  return IS_PRODUCTION
+    ? entries.filter((entry) => entry.visibility === "public")
+    : entries;
+}
 
 /** Coerce raw gray-matter frontmatter into a typed LogbookEntry. */
 function toLogbookEntry(data: Record<string, unknown>): LogbookEntry {
@@ -37,6 +57,7 @@ function toLogbookEntry(data: Record<string, unknown>): LogbookEntry {
     location: String(data.location ?? ""),
     tags: Array.isArray(data.tags) ? data.tags.map(String) : [],
     summary: String(data.summary ?? ""),
+    visibility: toVisibility(data.visibility),
   };
 }
 
@@ -57,7 +78,7 @@ export const getAllLogbookEntries = cache((): LogbookEntryMeta[] => {
       return { slug, ...toLogbookEntry(data) };
     });
 
-  return entries.sort(
+  return visibilityGate(entries).sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 });
@@ -72,14 +93,17 @@ export function getLogbookEntry(slug: string): LogbookEntryFull | null {
 
   const raw = fs.readFileSync(filePath, "utf8");
   const { data, content } = matter(raw);
-  return { slug, ...toLogbookEntry(data), content };
+  const entry = toLogbookEntry(data);
+  // Default-deny on the live server: never serve a non-public entry directly.
+  if (IS_PRODUCTION && entry.visibility !== "public") return null;
+  return { slug, ...entry, content };
 }
 
 /* -------------------------------------------------------------------------- */
 /* The Archive                                                                */
 /* -------------------------------------------------------------------------- */
 
-const ARCHIVE_DIR = path.join(process.cwd(), "content", "archive");
+const ARCHIVE_DIR = path.join(CONTENT_ROOT, "archive");
 
 const ARCHIVE_TIERS: readonly ArchiveTier[] = ["portfolio", "demo", "archive"];
 
@@ -88,11 +112,6 @@ function toTier(value: unknown): ArchiveTier {
   return ARCHIVE_TIERS.includes(value as ArchiveTier)
     ? (value as ArchiveTier)
     : "archive";
-}
-
-/** Narrow an arbitrary value to a visibility flag, defaulting to `private`. */
-function toVisibility(value: unknown): ArchiveVisibility {
-  return value === "public" ? "public" : "private";
 }
 
 /** Coerce raw gray-matter frontmatter into a typed ArchiveEntry. */
@@ -130,7 +149,7 @@ export const getAllArchiveEntries = cache((): ArchiveEntryMeta[] => {
       return { slug, ...toArchiveEntry(data) };
     });
 
-  return entries.sort((a, b) => b.year - a.year);
+  return visibilityGate(entries).sort((a, b) => b.year - a.year);
 });
 
 /**
@@ -143,14 +162,16 @@ export function getArchiveEntry(slug: string): ArchiveEntryFull | null {
 
   const raw = fs.readFileSync(filePath, "utf8");
   const { data, content } = matter(raw);
-  return { slug, ...toArchiveEntry(data), content };
+  const entry = toArchiveEntry(data);
+  if (IS_PRODUCTION && entry.visibility !== "public") return null;
+  return { slug, ...entry, content };
 }
 
 /* -------------------------------------------------------------------------- */
 /* The Playbook                                                               */
 /* -------------------------------------------------------------------------- */
 
-const PLAYBOOK_DIR = path.join(process.cwd(), "content", "playbook");
+const PLAYBOOK_DIR = path.join(CONTENT_ROOT, "playbook");
 
 /** Narrow an arbitrary value to a PlaybookStatus, defaulting to `draft`. */
 function toStatus(value: unknown): PlaybookStatus {
@@ -165,6 +186,7 @@ function toPlaybookEntry(data: Record<string, unknown>): PlaybookEntry {
     last_updated: String(data.last_updated ?? ""),
     status: toStatus(data.status),
     tags: Array.isArray(data.tags) ? data.tags.map(String) : [],
+    visibility: toVisibility(data.visibility),
   };
 }
 
@@ -193,21 +215,21 @@ function walkMdx(dir: string, base: string = dir): string[] {
  * category, then title, for stable hierarchical navigation.
  */
 export const getAllPlaybookEntries = cache((): PlaybookEntryMeta[] => {
-  return walkMdx(PLAYBOOK_DIR)
-    .map((relPath) => {
-      const slug = relPath.replace(/\.mdx$/, "").split("/");
-      const raw = fs.readFileSync(path.join(PLAYBOOK_DIR, relPath), "utf8");
-      const { data } = matter(raw);
-      return {
-        slug,
-        path: `/playbook/${slug.join("/")}`,
-        ...toPlaybookEntry(data),
-      };
-    })
-    .sort(
-      (a, b) =>
-        a.category.localeCompare(b.category) || a.title.localeCompare(b.title)
-    );
+  const entries = walkMdx(PLAYBOOK_DIR).map((relPath) => {
+    const slug = relPath.replace(/\.mdx$/, "").split("/");
+    const raw = fs.readFileSync(path.join(PLAYBOOK_DIR, relPath), "utf8");
+    const { data } = matter(raw);
+    return {
+      slug,
+      path: `/playbook/${slug.join("/")}`,
+      ...toPlaybookEntry(data),
+    };
+  });
+
+  return visibilityGate(entries).sort(
+    (a, b) =>
+      a.category.localeCompare(b.category) || a.title.localeCompare(b.title)
+  );
 });
 
 /**
@@ -238,10 +260,12 @@ export function getPlaybookEntry(slug: string[]): PlaybookEntryFull | null {
 
   const raw = fs.readFileSync(filePath, "utf8");
   const { data, content } = matter(raw);
+  const entry = toPlaybookEntry(data);
+  if (IS_PRODUCTION && entry.visibility !== "public") return null;
   return {
     slug,
     path: `/playbook/${slug.join("/")}`,
-    ...toPlaybookEntry(data),
+    ...entry,
     content,
   };
 }
@@ -266,6 +290,7 @@ export const getTaggedEntries = cache((): TaggedEntry[] => {
     title: entry.title,
     path: `/logbook/${entry.slug}`,
     tags: entry.tags,
+    visibility: entry.visibility,
     display: entry.date,
     sortKey: new Date(entry.date).getTime() || 0,
   }));
@@ -275,6 +300,7 @@ export const getTaggedEntries = cache((): TaggedEntry[] => {
     title: entry.title,
     path: `/archive/${entry.slug}`,
     tags: entry.tech_stack,
+    visibility: entry.visibility,
     display: String(entry.year),
     sortKey: new Date(`${entry.year}-01-01`).getTime() || 0,
   }));
@@ -284,11 +310,97 @@ export const getTaggedEntries = cache((): TaggedEntry[] => {
     title: entry.title,
     path: entry.path,
     tags: entry.tags,
+    visibility: entry.visibility,
     display: entry.last_updated,
     sortKey: new Date(entry.last_updated).getTime() || 0,
   }));
 
   return [...logbook, ...archive, ...playbook];
+});
+
+/**
+ * Non-public (private/draft) entries across all pillars — for the local-only
+ * "Vault" dashboard module. In production the readers already drop these, so
+ * this returns nothing; it is only meaningful (and only rendered) in dev.
+ */
+export const getNonPublicEntries = cache((): TaggedEntry[] =>
+  getTaggedEntries()
+    .filter((entry) => entry.visibility !== "public")
+    .sort((a, b) => b.sortKey - a.sortKey)
+);
+
+/* -------------------------------------------------------------------------- */
+/* Full-text search index                                                     */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Reduce an MDX body to clean, searchable plain text: drop fenced code, JSX
+ * component wrappers (`<SpecSheet …/>`), HTML tags, link/wiki syntax, and
+ * markdown punctuation so the index isn't bloated with code/markup tokens.
+ */
+function sanitizeBody(body: string): string {
+  return body
+    .replace(/```[\s\S]*?```/g, " ") // fenced code blocks
+    .replace(/<[^>]*>/g, " ") // JSX/HTML tags (incl. multiline component props)
+    .replace(/\[\[([^\]]+)\]\]/g, "$1") // wiki links → label
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1") // md links → label
+    .replace(/[#>*_`~|]/g, " ") // markdown punctuation
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Build the full-text search index. Honors the Vault Guardrail: it reads only
+ * the visibility-gated entries, so on the production build the body text of
+ * private/draft (and the entire Logbook) is never serialized into the public
+ * index. In development it includes everything for full local recall.
+ */
+export const generateSearchIndex = cache((): SearchRecord[] => {
+  const records: SearchRecord[] = [];
+
+  for (const entry of getAllLogbookEntries()) {
+    const full = getLogbookEntry(entry.slug);
+    if (!full) continue;
+    records.push({
+      id: `logbook:${entry.slug}`,
+      title: entry.title,
+      url: `/logbook/${entry.slug}`,
+      pillar: "logbook",
+      tags: entry.tags,
+      date: entry.date,
+      body: sanitizeBody(full.content),
+    });
+  }
+
+  for (const entry of getAllArchiveEntries()) {
+    const full = getArchiveEntry(entry.slug);
+    if (!full) continue;
+    records.push({
+      id: `archive:${entry.slug}`,
+      title: entry.title,
+      url: `/archive/${entry.slug}`,
+      pillar: "archive",
+      tags: entry.tech_stack,
+      date: String(entry.year),
+      body: sanitizeBody(full.content),
+    });
+  }
+
+  for (const entry of getAllPlaybookEntries()) {
+    const full = getPlaybookEntry(entry.slug);
+    if (!full) continue;
+    records.push({
+      id: `playbook:${entry.slug.join("/")}`,
+      title: entry.title,
+      url: entry.path,
+      pillar: "playbook",
+      tags: entry.tags,
+      date: entry.last_updated,
+      body: sanitizeBody(full.content),
+    });
+  }
+
+  return records;
 });
 
 /**

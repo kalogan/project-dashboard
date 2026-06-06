@@ -2,11 +2,17 @@ import Image from "next/image";
 import Link from "next/link";
 import SearchTrigger from "@/components/SearchTrigger";
 import ActivityHeatmap from "@/components/ActivityHeatmap";
+import SurfaceModule from "@/components/SurfaceModule";
+import VaultModule from "@/components/VaultModule";
 import {
   getAllLogbookEntries,
   getAllArchiveEntries,
   getAllPlaybookEntries,
 } from "@/lib/mdx";
+
+// Regenerate daily so the heatmap window and the "On This Day" surface track
+// the current date without per-request cost.
+export const revalidate = 86400;
 
 /**
  * The Root Command Center — a high-density, situational-awareness dashboard.
@@ -41,6 +47,18 @@ export default function Home() {
       <div className="mt-10">
         <ActivityHeatmap />
       </div>
+
+      {/* Surface Engine — On This Day / random evergreen review. */}
+      <div className="mt-10">
+        <SurfaceModule />
+      </div>
+
+      {/* Local-only Vault: private/draft roster (never rendered in production). */}
+      {process.env.NODE_ENV === "development" && (
+        <div className="mt-10">
+          <VaultModule />
+        </div>
+      )}
 
       <div className="mt-12 grid grid-cols-1 gap-10 lg:grid-cols-3">
         {/* Highlight — the only imagery on the page. */}

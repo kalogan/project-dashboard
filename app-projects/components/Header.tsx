@@ -12,6 +12,7 @@ const NAV_LINKS = [
   { href: "/logbook", label: "Logbook" },
   { href: "/archive", label: "Archive" },
   { href: "/playbook", label: "Playbook" },
+  { href: "/settings", label: "Settings" },
 ] as const;
 
 export default function Header() {

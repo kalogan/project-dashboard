@@ -1,8 +1,14 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { askCodex } from "@/app/actions/askCodex";
+import { RATE_LIMIT_TOKEN } from "@/lib/constants";
 import type { ChatTurn } from "@/types";
+
+const FLASH_MESSAGES = [
+  "[ PARSING BRAIN DUMP... ]",
+  "[ COMPILING SCHEMA... ]",
+];
 
 /**
  * The "Grill Me" interrogator pane.
@@ -28,7 +34,24 @@ export default function Interrogator({
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rateLimited, setRateLimited] = useState(false);
+  const [flash, setFlash] = useState(0);
   const logRef = useRef<HTMLDivElement>(null);
+
+  // While the AI is working: alternate clinical terminal strings (no spinner)
+  // and switch the global cursor to wait — no layout shift.
+  useEffect(() => {
+    if (!pending) return;
+    document.body.style.cursor = "wait";
+    const id = setInterval(
+      () => setFlash((f) => (f + 1) % FLASH_MESSAGES.length),
+      600
+    );
+    return () => {
+      clearInterval(id);
+      document.body.style.cursor = "";
+    };
+  }, [pending]);
 
   async function send(event: React.FormEvent) {
     event.preventDefault();
@@ -48,7 +71,15 @@ export default function Interrogator({
         logRef.current?.scrollTo({ top: logRef.current.scrollHeight });
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Request failed.");
+      const message = err instanceof Error ? err.message : "Request failed.";
+      // Free-tier ceiling → degrade to manual drafting instead of crashing.
+      if (/GEMINI_RATE_LIMIT|429|quota|rate.?limit/i.test(message)) {
+        setRateLimited(true);
+        setHistory((prev) => prev.slice(0, -1)); // drop the unsent user turn
+        setInput(message.includes(RATE_LIMIT_TOKEN) ? "" : input);
+      } else {
+        setError(message);
+      }
     } finally {
       setPending(false);
     }
@@ -93,7 +124,7 @@ export default function Interrogator({
 
         {pending && (
           <p className="border-l border-gray-600 pl-3 font-mono text-xs uppercase tracking-widest text-gray-400">
-            Thinking…
+            {FLASH_MESSAGES[flash]}
           </p>
         )}
         {error && (
@@ -103,22 +134,29 @@ export default function Interrogator({
         )}
       </div>
 
-      <form onSubmit={send} className="flex gap-2 border-t border-gray-800 p-3">
-        <input
-          value={input}
-          onChange={(event) => setInput(event.target.value)}
-          placeholder="Message the Codex Editor…"
-          aria-label="Message the Codex Editor"
-          className="w-full rounded-none border border-gray-800 bg-black px-3 py-2 font-mono text-sm text-white placeholder:text-gray-400 focus:border-white focus:outline-none"
-        />
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-none border border-white bg-white px-3 py-2 font-mono text-xs font-semibold uppercase tracking-widest text-black transition-opacity duration-150 hover:opacity-80 disabled:opacity-40"
-        >
-          Send
-        </button>
-      </form>
+      {rateLimited ? (
+        <p className="border-t border-gray-800 p-3 font-mono text-xs uppercase tracking-widest text-white">
+          [ Gemini rate limit reached. Switching to manual markdown drafting ]
+        </p>
+      ) : (
+        <form onSubmit={send} className="flex gap-2 border-t border-gray-800 p-3">
+          <input
+            value={input}
+            onChange={(event) => setInput(event.target.value)}
+            readOnly={pending}
+            placeholder="Message the Codex Editor…"
+            aria-label="Message the Codex Editor"
+            className="w-full rounded-none border border-gray-800 bg-black px-3 py-2 font-mono text-sm text-white placeholder:text-gray-400 read-only:opacity-60 focus:border-white focus:outline-none"
+          />
+          <button
+            type="submit"
+            disabled={pending}
+            className="rounded-none border border-white bg-white px-3 py-2 font-mono text-xs font-semibold uppercase tracking-widest text-black transition-opacity duration-150 hover:opacity-80 disabled:opacity-40"
+          >
+            Send
+          </button>
+        </form>
+      )}
     </div>
   );
 }

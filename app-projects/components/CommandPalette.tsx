@@ -1,6 +1,6 @@
 "use client";
 
-import Fuse from "fuse.js";
+import FlexSearch from "flexsearch";
 import { useRouter } from "next/navigation";
 import {
   useCallback,
@@ -9,44 +9,90 @@ import {
   useRef,
   useState,
 } from "react";
+import type { SearchRecord } from "@/types";
 
 /**
  * Global command palette (Cmd+K / Ctrl+K).
  *
- * A keyboard-first, Raycast/VS-Code-style navigator over the entire codex. The
- * lightweight search index is fetched once (on first open) from /api/search and
- * searched on the client with fuse.js. Results are grouped by pillar; the
- * active row is rendered in inverse high-contrast (white on black).
+ * A keyboard-first, Raycast/VS-Code-style navigator. The full-text index is
+ * fetched once (lazily, on first open) from /api/search and searched entirely
+ * in the browser with flexsearch. Input is debounced 150ms; results show a
+ * context snippet with the matched query highlighted.
  */
 
-interface SearchRecord {
-  title: string;
-  url_path: string;
-  category: string;
-  excerpt: string;
+const PILLAR_LABEL: Record<SearchRecord["pillar"], string> = {
+  archive: "Archive",
+  playbook: "Playbook",
+  logbook: "Logbook",
+};
+// Fixed render order; the flattened order drives keyboard navigation.
+const PILLAR_ORDER: SearchRecord["pillar"][] = ["archive", "playbook", "logbook"];
+const BROWSE_LIMIT = 50;
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-/** Derive the pillar label from a record's URL — no extra index field needed. */
-function pillarOf(urlPath: string): string {
-  if (urlPath.startsWith("/archive")) return "Archive";
-  if (urlPath.startsWith("/playbook")) return "Playbook";
-  return "Codex";
+/** A ~60-char window of `body` centered on the first query match. */
+function makeSnippet(body: string, query: string): string {
+  const q = query.trim().toLowerCase();
+  if (!q) return body.slice(0, 90);
+  const lower = body.toLowerCase();
+  let idx = lower.indexOf(q);
+  if (idx === -1) idx = lower.indexOf(q.split(/\s+/)[0]);
+  if (idx === -1) return body.slice(0, 90);
+  const start = Math.max(0, idx - 30);
+  const end = Math.min(body.length, idx + 30);
+  return `${start > 0 ? "…" : ""}${body.slice(start, end).trim()}${
+    end < body.length ? "…" : ""
+  }`;
 }
 
-// Pillars render in this fixed order; flattened nav order matches it.
-const PILLAR_ORDER = ["Archive", "Playbook", "Codex"];
+/** Render `text`, wrapping query tokens in an inverse-aware <mark>. */
+function Highlight({
+  text,
+  query,
+  active,
+}: {
+  text: string;
+  query: string;
+  active: boolean;
+}) {
+  const tokens = useMemo(
+    () => Array.from(new Set(query.trim().split(/\s+/).filter(Boolean))),
+    [query]
+  );
+  if (tokens.length === 0) return <>{text}</>;
+
+  const re = new RegExp(`(${tokens.map(escapeRegExp).join("|")})`, "ig");
+  const markClass = active ? "bg-black text-white" : "bg-white text-black";
+  const lowered = new Set(tokens.map((t) => t.toLowerCase()));
+
+  return (
+    <>
+      {text.split(re).map((seg, i) =>
+        lowered.has(seg.toLowerCase()) ? (
+          <mark key={i} className={markClass}>
+            {seg}
+          </mark>
+        ) : (
+          <span key={i}>{seg}</span>
+        )
+      )}
+    </>
+  );
+}
 
 export default function CommandPalette() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [index, setIndex] = useState<SearchRecord[] | null>(null);
+  const [records, setRecords] = useState<SearchRecord[] | null>(null);
   const [query, setQuery] = useState("");
+  const [debounced, setDebounced] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Global hotkey: Cmd+K (mac) / Ctrl+K (win/linux) toggles the palette. A
-  // custom "codex:search" event lets non-keyboard affordances (e.g. the header
-  // button) open it without sharing React state across the tree.
+  // Global hotkey + custom "codex:search" event (from the header button).
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
@@ -54,9 +100,7 @@ export default function CommandPalette() {
         setOpen((prev) => !prev);
       }
     }
-    function onOpen() {
-      setOpen(true);
-    }
+    const onOpen = () => setOpen(true);
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("codex:search", onOpen);
     return () => {
@@ -65,16 +109,16 @@ export default function CommandPalette() {
     };
   }, []);
 
-  // Lazy-load the search index the first time the palette opens.
+  // Lazy-load the index the first time the palette opens.
   useEffect(() => {
-    if (!open || index) return;
+    if (!open || records) return;
     fetch("/api/search")
       .then((res) => res.json())
-      .then((data: SearchRecord[]) => setIndex(data))
-      .catch(() => setIndex([]));
-  }, [open, index]);
+      .then((data: SearchRecord[]) => setRecords(data))
+      .catch(() => setRecords([]));
+  }, [open, records]);
 
-  // Focus the input and lock body scroll while open; reset on close.
+  // Focus + scroll-lock while open; reset on close.
   useEffect(() => {
     if (open) {
       inputRef.current?.focus();
@@ -82,6 +126,7 @@ export default function CommandPalette() {
     } else {
       document.body.style.overflow = "";
       setQuery("");
+      setDebounced("");
       setActiveIndex(0);
     }
     return () => {
@@ -89,41 +134,61 @@ export default function CommandPalette() {
     };
   }, [open]);
 
-  const fuse = useMemo(
-    () =>
-      new Fuse(index ?? [], {
-        keys: ["title", "category", "excerpt"],
-        threshold: 0.4,
-        ignoreLocation: true,
-      }),
-    [index]
-  );
-
-  // Flattened results in pillar order — this IS the keyboard navigation order.
-  const results = useMemo(() => {
-    const matched = query.trim()
-      ? fuse.search(query).map((r) => r.item)
-      : (index ?? []);
-
-    return [...matched].sort(
-      (a, b) =>
-        PILLAR_ORDER.indexOf(pillarOf(a.url_path)) -
-        PILLAR_ORDER.indexOf(pillarOf(b.url_path))
-    );
-  }, [query, fuse, index]);
-
-  // Keep the active index in range whenever the result set changes.
+  // 150ms debounce so a decade of text doesn't re-render on every keystroke.
   useEffect(() => {
-    setActiveIndex(0);
+    const id = setTimeout(() => setDebounced(query), 150);
+    return () => clearTimeout(id);
   }, [query]);
 
-  const close = useCallback(() => setOpen(false), []);
+  // Build the flexsearch index once per loaded dataset. Guarded so it is only
+  // ever constructed on the client, after the index has been fetched (never
+  // during SSR, where `records` is null).
+  const flex = useMemo(() => {
+    if (!records) return null;
+    const doc = new FlexSearch.Document({
+      tokenize: "forward",
+      document: { id: "id", index: ["title", "tags", "body"] },
+    });
+    records.forEach((record, i) =>
+      doc.add({
+        id: i,
+        title: record.title,
+        tags: record.tags.join(" "),
+        body: record.body,
+      })
+    );
+    return doc;
+  }, [records]);
 
+  // Matched records in fixed pillar order — this IS the keyboard nav order.
+  const results = useMemo(() => {
+    if (!records) return [];
+    const q = debounced.trim();
+
+    let matched: SearchRecord[];
+    if (!q || !flex) {
+      matched = records.slice(0, BROWSE_LIMIT);
+    } else {
+      const ids = new Set<number>();
+      const raw = flex.search(q, { limit: 30 }) as Array<{ result: number[] }>;
+      raw.forEach((group) => group.result.forEach((id) => ids.add(id)));
+      matched = Array.from(ids).map((id) => records[id]);
+    }
+
+    return matched.sort(
+      (a, b) =>
+        PILLAR_ORDER.indexOf(a.pillar) - PILLAR_ORDER.indexOf(b.pillar)
+    );
+  }, [debounced, flex, records]);
+
+  useEffect(() => setActiveIndex(0), [debounced]);
+
+  const close = useCallback(() => setOpen(false), []);
   const go = useCallback(
     (record?: SearchRecord) => {
       if (!record) return;
       close();
-      router.push(record.url_path);
+      router.push(record.url);
     },
     [close, router]
   );
@@ -146,11 +211,10 @@ export default function CommandPalette() {
 
   if (!open) return null;
 
-  // Group for display while preserving the flat index used for highlighting.
   let runningIndex = -1;
   const grouped = PILLAR_ORDER.map((pillar) => ({
     pillar,
-    items: results.filter((r) => pillarOf(r.url_path) === pillar),
+    items: results.filter((r) => r.pillar === pillar),
   })).filter((group) => group.items.length > 0);
 
   return (
@@ -202,13 +266,13 @@ export default function CommandPalette() {
         >
           {results.length === 0 ? (
             <p className="px-4 py-8 text-center font-normal text-gray-400">
-              {index === null ? "Loading index…" : "No matches."}
+              {records === null ? "Loading index…" : "No matches."}
             </p>
           ) : (
             grouped.map((group) => (
               <div key={group.pillar} className="py-2" role="group">
                 <p className="px-4 py-1 font-mono text-[0.65rem] uppercase tracking-widest text-gray-400">
-                  From {group.pillar}
+                  From {PILLAR_LABEL[group.pillar]}
                 </p>
                 <ul>
                   {group.items.map((record) => {
@@ -216,7 +280,7 @@ export default function CommandPalette() {
                     const isActive = runningIndex === activeIndex;
                     const flatIndex = runningIndex;
                     return (
-                      <li key={record.url_path}>
+                      <li key={record.id}>
                         <button
                           type="button"
                           id={`cmdk-option-${flatIndex}`}
@@ -226,20 +290,26 @@ export default function CommandPalette() {
                           onClick={() => go(record)}
                           onMouseMove={() => setActiveIndex(flatIndex)}
                           className={`block w-full px-4 py-2 text-left transition-opacity duration-150 ${
-                            isActive
-                              ? "bg-white text-black"
-                              : "bg-black text-gray-300"
+                            isActive ? "bg-white text-black" : "bg-black text-gray-300"
                           }`}
                         >
                           <span className="block font-semibold">
-                            {record.title}
+                            <Highlight
+                              text={record.title}
+                              query={debounced}
+                              active={isActive}
+                            />
                           </span>
                           <span
                             className={`block truncate text-sm ${
                               isActive ? "text-gray-700" : "text-gray-400"
                             }`}
                           >
-                            {record.excerpt}
+                            <Highlight
+                              text={makeSnippet(record.body, debounced)}
+                              query={debounced}
+                              active={isActive}
+                            />
                           </span>
                         </button>
                       </li>

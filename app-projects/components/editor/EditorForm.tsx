@@ -4,6 +4,8 @@ import { useRef, useState } from "react";
 import { saveMdxFile } from "@/app/actions/saveMdx";
 import { uploadImage } from "@/app/actions/uploadMedia";
 import Interrogator from "@/components/editor/Interrogator";
+import Triage from "@/components/editor/Triage";
+import type { InboxItem } from "@/types";
 
 /**
  * The local-first authoring form.
@@ -41,8 +43,13 @@ const SNIPPETS: { label: string; snippet: string }[] = [
 
 let uploadCounter = 0;
 
-export default function EditorForm() {
+export default function EditorForm({
+  inboxItems,
+}: {
+  inboxItems: InboxItem[];
+}) {
   const [body, setBody] = useState("");
+  const [tab, setTab] = useState<"compose" | "inbox">("compose");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   /** Splice `text` into the body at the current selection, then refocus. */
@@ -95,15 +102,44 @@ export default function EditorForm() {
     ingestImage(file, event.currentTarget.selectionStart);
   }
 
-  return (
-    <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-      {/* Left column — the Interrogator. */}
-      <aside className="lg:sticky lg:top-8 lg:col-span-1 lg:h-[calc(100vh-6rem)]">
-        <Interrogator onInsert={insertAtCursor} />
-      </aside>
+  const tabClass = (active: boolean) =>
+    `rounded-none border px-3 py-1.5 font-mono text-xs uppercase tracking-widest transition-colors ${
+      active
+        ? "border-white bg-white text-black"
+        : "border-gray-800 text-gray-400 hover:text-white"
+    }`;
 
-      {/* Right column — the Canvas. */}
-      <form action={saveMdxFile} className="space-y-6 lg:col-span-2">
+  return (
+    <div>
+      {/* Tabs */}
+      <div className="mb-8 flex gap-2">
+        <button
+          type="button"
+          onClick={() => setTab("compose")}
+          className={tabClass(tab === "compose")}
+        >
+          Compose
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab("inbox")}
+          className={tabClass(tab === "inbox")}
+        >
+          Inbox ({inboxItems.length})
+        </button>
+      </div>
+
+      {tab === "inbox" ? (
+        <Triage items={inboxItems} />
+      ) : (
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+          {/* Left column — the Interrogator. */}
+          <aside className="lg:sticky lg:top-8 lg:col-span-1 lg:h-[calc(100vh-6rem)]">
+            <Interrogator onInsert={insertAtCursor} />
+          </aside>
+
+          {/* Right column — the Canvas. */}
+          <form action={saveMdxFile} className="space-y-6 lg:col-span-2">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <label className="block">
           <span className="mb-1 block font-mono text-xs uppercase tracking-widest text-gray-400">
@@ -152,6 +188,7 @@ export default function EditorForm() {
         <textarea
           ref={textareaRef}
           name="body"
+          aria-label="Body"
           value={body}
           onChange={(event) => setBody(event.target.value)}
           onPaste={onPaste}
@@ -182,7 +219,9 @@ export default function EditorForm() {
         >
           Save entry
         </button>
-      </form>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

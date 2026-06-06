@@ -35,6 +35,20 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# bulk-ingestion triage inbox (raw, uncompressed files)
+/_inbox
+
+# test artifacts
+/_test-content
+/_test-inbox
+/coverage
+/playwright-report
+/test-results
+/.playwright
+
+# media attached to private/draft entries — never leaves the local machine
+/public/media/private
+
 # next-pwa generated service worker
 /public/sw.js
 /public/sw.js.map
