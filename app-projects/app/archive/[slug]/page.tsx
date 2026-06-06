@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getAllArchiveEntries, getArchiveEntry, tagToSlug } from "@/lib/mdx";
 import Mdx from "@/components/Mdx";
 import Backlinks from "@/components/Backlinks";
+import LogisticsBoard from "@/components/LogisticsBoard";
 
 interface PageProps {
   params: { slug: string };
@@ -100,7 +101,15 @@ export default function ArchiveEntryPage({ params }: PageProps) {
 
       {/* Body — rendered MDX with the monochrome design tokens. */}
       <article className="mt-10">
-        <Mdx source={entry.content} />
+        {entry.layout === "board" ? (
+          <LogisticsBoard
+            source={entry.content}
+            pillar="archive"
+            slug={entry.slug}
+          />
+        ) : (
+          <Mdx source={entry.content} />
+        )}
       </article>
 
       <Backlinks slug={entry.slug} />

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getAllPlaybookEntries, getPlaybookEntry } from "@/lib/mdx";
 import Mdx from "@/components/Mdx";
 import Backlinks from "@/components/Backlinks";
+import LogisticsBoard from "@/components/LogisticsBoard";
 
 interface PageProps {
   params: { slug: string[] };
@@ -47,7 +48,15 @@ export default function PlaybookEntryPage({ params }: PageProps) {
       </header>
 
       <div className="mt-2">
-        <Mdx source={entry.content} />
+        {entry.layout === "board" ? (
+          <LogisticsBoard
+            source={entry.content}
+            pillar="playbook"
+            slug={entry.slug.join("/")}
+          />
+        ) : (
+          <Mdx source={entry.content} />
+        )}
       </div>
 
       <Backlinks slug={entry.slug[entry.slug.length - 1]} />

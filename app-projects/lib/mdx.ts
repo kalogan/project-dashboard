@@ -40,6 +40,11 @@ function toVisibility(value: unknown): Visibility {
   return value === "public" || value === "draft" ? value : "private";
 }
 
+/** Narrow a value to an EntryLayout, defaulting to `doc`. */
+function toLayout(value: unknown): "doc" | "board" {
+  return value === "board" ? "board" : "doc";
+}
+
 /** In production, keep only public entries; in dev, keep everything. */
 function visibilityGate<T extends { visibility: Visibility }>(
   entries: T[]
@@ -58,6 +63,7 @@ function toLogbookEntry(data: Record<string, unknown>): LogbookEntry {
     tags: Array.isArray(data.tags) ? data.tags.map(String) : [],
     summary: String(data.summary ?? ""),
     visibility: toVisibility(data.visibility),
+    layout: toLayout(data.layout),
   };
 }
 
@@ -126,6 +132,7 @@ function toArchiveEntry(data: Record<string, unknown>): ArchiveEntry {
     tech_stack: Array.isArray(data.tech_stack)
       ? data.tech_stack.map(String)
       : [],
+    layout: toLayout(data.layout),
     ...(data.time_to_mvp != null
       ? { time_to_mvp: String(data.time_to_mvp) }
       : {}),
@@ -187,6 +194,7 @@ function toPlaybookEntry(data: Record<string, unknown>): PlaybookEntry {
     status: toStatus(data.status),
     tags: Array.isArray(data.tags) ? data.tags.map(String) : [],
     visibility: toVisibility(data.visibility),
+    layout: toLayout(data.layout),
   };
 }
 

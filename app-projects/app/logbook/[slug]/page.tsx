@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getAllLogbookEntries, getLogbookEntry, tagToSlug } from "@/lib/mdx";
 import Mdx from "@/components/Mdx";
 import Backlinks from "@/components/Backlinks";
+import LogisticsBoard from "@/components/LogisticsBoard";
 
 interface PageProps {
   params: { slug: string };
@@ -66,7 +67,15 @@ export default function LogbookEntryPage({ params }: PageProps) {
       </header>
 
       <article className="mt-8">
-        <Mdx source={entry.content} />
+        {entry.layout === "board" ? (
+          <LogisticsBoard
+            source={entry.content}
+            pillar="logbook"
+            slug={entry.slug}
+          />
+        ) : (
+          <Mdx source={entry.content} />
+        )}
       </article>
 
       <Backlinks slug={entry.slug} />
